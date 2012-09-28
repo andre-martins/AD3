@@ -343,7 +343,7 @@ int LoadGraph(ifstream &file_graph,
     // Read linked variables.
     int offset = 1;
     int num_links = atoi(fields[1].c_str());
-    vector<BinaryVariable*> binary_variables(num_links, NULL);
+    vector<BinaryVariable*> binary_variables(num_links);
     vector<bool> negated(num_links, false);
     ++offset;
 
@@ -547,7 +547,7 @@ int LoadGraphUAI(ifstream &file_graph,
   getline(file_graph, line);
   TrimComments("#", &line);
   int num_multi_variables = atoi(line.c_str());
-  vector<MultiVariable*> multi_variables(num_multi_variables, NULL);
+  vector<MultiVariable*> multi_variables(num_multi_variables);
 
   // Read cardinality of each multi-variable.
   getline(file_graph, line);
@@ -568,8 +568,8 @@ int LoadGraphUAI(ifstream &file_graph,
   int num_factors = atoi(line.c_str());
 
   // Read factors (just the structure).
-  vector<Factor*> factors(num_factors, NULL);
-  vector<MultiVariable*> unary_factors(num_factors, NULL);
+  vector<Factor*> factors(num_factors);
+  vector<MultiVariable*> unary_factors(num_factors);
   for (int i = 0; i < num_factors; ++i) {
     getline(file_graph, line);
     TrimComments("#", &line);
@@ -585,7 +585,7 @@ int LoadGraphUAI(ifstream &file_graph,
       int k = atoi(fields[offset].c_str());
       unary_factors[i] = multi_variables[k];
     } else {
-      vector<MultiVariable*> multi_variables_local(num_links, NULL);
+      vector<MultiVariable*> multi_variables_local(num_links);
       for (int j = 0; j < num_links; ++j) {
         int k = atoi(fields[offset + j].c_str());
         multi_variables_local[j] = multi_variables[k];
