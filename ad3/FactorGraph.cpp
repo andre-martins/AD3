@@ -705,13 +705,13 @@ int FactorGraph::RunPSDD(double lower_bound,
 }
 
 int FactorGraph::RunBranchAndBound(double cumulative_value,
-		                               vector<bool> &branched_variables,
-		                               int depth,
-		                               vector<double>* posteriors,
-		                               vector<double>* additional_posteriors,
-		                               double *value,
-		                               double *best_lower_bound,
-		                               double *best_upper_bound) {
+                                   vector<bool> &branched_variables,
+                                   int depth,
+                                   vector<double>* posteriors,
+                                   vector<double>* additional_posteriors,
+                                   double *value,
+                                   double *best_lower_bound,
+                                   double *best_upper_bound) {
   int max_branching_depth = 5; // 2;
 
   // Solve the LP relaxation.
@@ -734,7 +734,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
     return status;
   }
 
-  if (depth > max_branching_depth) {
+  if (max_branching_depth >= 0 && depth > max_branching_depth) {
     *value = -1e100;
     *best_upper_bound = -1e100;
     return STATUS_UNSOLVED;
@@ -769,14 +769,14 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   double upper_bound_zero;
   double score = variables_[variable_to_branch]->GetLogPotential();
   variables_[variable_to_branch]->SetLogPotential(score - infinite_potential);
-  int status_zero = RunBranchAndBound(cumulative_value, 
-			                                branched_variables,
-			                                depth + 1,
-			                                &posteriors_zero,
-			                                &additional_posteriors_zero,
-			                                &value_zero,
-			                                best_lower_bound,
-			                                best_upper_bound);
+  int status_zero = RunBranchAndBound(cumulative_value,
+                                      branched_variables,
+                                      depth + 1,
+                                      &posteriors_zero,
+                                      &additional_posteriors_zero,
+                                      &value_zero,
+                                      best_lower_bound,
+                                      best_upper_bound);
   // Put back the original potential.
   variables_[variable_to_branch]->SetLogPotential(original_potential);
   if (status_zero != STATUS_OPTIMAL_INTEGER &&
@@ -792,14 +792,14 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   double upper_bound_one;
   score = variables_[variable_to_branch]->GetLogPotential();
   variables_[variable_to_branch]->SetLogPotential(score + infinite_potential);
-  int status_one = RunBranchAndBound(cumulative_value + infinite_potential, 
-				                             branched_variables,
-				                             depth + 1,
-				                             &posteriors_one,
-				                             &additional_posteriors_one,
-				                             &value_one,
-				                             best_lower_bound,
-				                             best_upper_bound);
+  int status_one = RunBranchAndBound(cumulative_value + infinite_potential,
+                                     branched_variables,
+                                     depth + 1,
+                                     &posteriors_one,
+                                     &additional_posteriors_one,
+                                     &value_one,
+                                     best_lower_bound,
+                                     best_upper_bound);
   // Put back the original potential.
   variables_[variable_to_branch]->SetLogPotential(original_potential);
   if (status_one != STATUS_OPTIMAL_INTEGER &&
