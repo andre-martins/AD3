@@ -465,8 +465,8 @@ int FactorGraph::RunPSDD(double lower_bound,
 
   for (t = 0; t < psdd_max_iterations_; ++t) {
     // Set stepsize.
-    //double eta = psdd_eta_ / static_cast<double>(num_times_increment+1);
-    double eta = psdd_eta_ / sqrt(static_cast<double>(t+1));
+    double eta = psdd_eta_ / static_cast<double>(num_times_increment+1);
+    //double eta = psdd_eta_ / sqrt(static_cast<double>(t+1));
 
     // Initialize all variables as inactive.
     for (int i = 0; i < variables_.size(); ++i) {

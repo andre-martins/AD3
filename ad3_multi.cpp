@@ -192,6 +192,37 @@ int RunAll(const string &format,
         }
 #endif
       }
+
+#define JMLR2012
+#ifdef JMLR2012
+      if (algorithm == "psdd") {
+        bool select_eta_oracle = true; // false;
+        int max_iterations_eta_oracle = 20;
+        double eta_lower = 1e-4;
+        double eta_upper = 10.0;
+        double eta_scale_factor = 2.0;
+        double best_upper_bound;
+        double best_eta = -1.0;
+        for (double eta0 = eta_upper; eta0 > eta_lower; eta0 /= eta_scale_factor) {
+          vector<double> posteriors;
+          vector<double> additional_posteriors;
+          double value;
+          double upper_bound;
+          factor_graph.SetEtaPSDD(eta0);
+          factor_graph.SetMaxIterationsPSDD(max_iterations_eta_oracle);
+          //factor_graph.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors, &value);
+          factor_graph.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors,
+                                          &value, &upper_bound);
+          if (best_eta < 0.0 || upper_bound < best_upper_bound) {
+            best_eta = eta0;
+            best_upper_bound = upper_bound;
+          }
+        }
+        cout << "Setting eta = " << best_eta << endl;
+        eta = best_eta;
+      }
+#endif
+
       cout << "Running " << niters << " iterations of "
            << algorithm << " (eta = "
            << eta << ")..." << endl;
