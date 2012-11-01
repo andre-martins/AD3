@@ -537,6 +537,12 @@ int FactorGraph::RunPSDD(double lower_bound,
       int offset = additional_factor_offsets[j];
       for (int i = 0; i < factor_additional_posteriors.size(); ++i) {
         (*additional_posteriors)[offset] = factor_additional_posteriors[i];
+        if ((*additional_posteriors)[offset] >= 1.5) {
+          cout << (*additional_posteriors)[offset] << endl;
+          cout << j << " " << i << " " << factor_additional_posteriors.size() << endl;
+          assert(false);
+        }
+
         ++offset;
       }
     }

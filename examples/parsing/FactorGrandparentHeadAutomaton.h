@@ -251,7 +251,7 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
         m = h - m;
         s = h - s;
       }
-      index_siblings_[m][s] = k;
+      index_siblings_[m][s] = grandparents.size() + k;
     }
     for (int k = 0; k < grandparents.size(); ++k) {
       int g = grandparents[k]->grandparent();

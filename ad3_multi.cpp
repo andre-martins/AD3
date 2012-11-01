@@ -208,11 +208,13 @@ int RunAll(const string &format,
           vector<double> additional_posteriors;
           double value;
           double upper_bound;
+          factor_graph.SetVerbosity(1);
           factor_graph.SetEtaPSDD(eta0);
           factor_graph.SetMaxIterationsPSDD(max_iterations_eta_oracle);
           //factor_graph.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors, &value);
           factor_graph.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors,
                                           &value, &upper_bound);
+          factor_graph.SetVerbosity(2);
           if (best_eta < 0.0 || upper_bound < best_upper_bound) {
             best_eta = eta0;
             best_upper_bound = upper_bound;
