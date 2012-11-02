@@ -25,6 +25,7 @@
 #include "ad3/FactorGraph.h"
 #include "ad3/Utils.h"
 #include "FactorDense.h"
+#include "FactorSequence.h"
 #include "FactorTree.h"
 #include "FactorHeadAutomaton.h"
 #include "FactorGrandparentHeadAutomaton.h"
@@ -416,6 +417,46 @@ int LoadGraph(ifstream &file_graph,
       factor->SetAdditionalLogPotentials(additional_scores);
       num_factor_log_potentials += additional_scores.size();
       cout << "Read dense factor." << endl;
+    } else if (fields[0] == "SEQUENCE") {
+      // Read the sequence length.
+      int length = atoi(fields[offset+num_links].c_str());
+      // Read the number of states for each position in the sequence.
+      vector<int> num_states(length);
+      int total_states = 0;
+      for (int k = 0; k < length; ++k) {
+        num_states[k] = atoi(fields[offset+num_links+1+k].c_str());
+        total_states += num_states[k];
+      }
+
+      // Read the additional log-potentials.
+      vector<double> additional_scores;
+      int index = 0;
+      for (int i = 0; i <= length; ++i) {
+        // If i == 0, the previous state is the start symbol.
+        int num_previous_states = (i > 0)? num_states[i - 1] : 1;
+        // If i == length-1, the previous state is the final symbol.
+        int num_current_states = (i < length)? num_states[i] : 1;
+        for (int j = 0; j < num_previous_states; ++j) {
+          for (int k = 0; k < num_current_states; ++k) {
+            double log_potential = atof(fields[offset+num_links+1+length+index].c_str());
+            additional_scores.push_back(log_potential);
+            ++index;
+          }
+        }
+      }
+      if (fields.size() != offset+num_links+1+length+index) {
+        cout << fields.size() << " "
+             << offset+num_links+1+length+index;
+        assert(false);
+      }
+
+      // Create the factor and declare it.
+      factor = new FactorSequence;
+      factor_graph->DeclareFactor(factor, binary_variables, true);
+      static_cast<FactorSequence*>(factor)->Initialize(num_states);
+      factor->SetAdditionalLogPotentials(additional_scores);
+      num_factor_log_potentials += additional_scores.size();
+      cout << "Read sequence factor." << endl;
     } else if (fields[0] == "ARBORESCENCE") {
       // Read the sentence length.
       int sentence_length = atoi(fields[offset+num_links].c_str());
