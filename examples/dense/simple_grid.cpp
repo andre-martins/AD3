@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-// Recover a valid configuration parse tree from a possibly fractional one.
+// Recover a valid integer assignment from a possibly fractional one.
 // Use a simple heuristic that prefers the state with highest unary posterior.
 
 void GetBestConfiguration(int grid_size, int num_states,
