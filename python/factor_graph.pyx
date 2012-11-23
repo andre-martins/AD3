@@ -57,12 +57,15 @@ cdef class PBinaryVariable:
 
 cdef class PMultiVariable:
     cdef MultiVariable *thisptr
+    cdef bool allocate
     def __cinit__(self, allocate=True):
+        self.allocate = allocate
         if allocate:
             self.thisptr = new MultiVariable()
 
     def __dealloc__(self):
-        del self.thisptr
+        if self.allocate:
+            del self.thisptr
 
     def get_log_potential(self, int i):
         return self.thisptr.GetLogPotential(i)
@@ -87,6 +90,7 @@ cdef class PFactorGraph:
         pmult = PMultiVariable(allocate=False)
         pmult.thisptr = mult
         return pmult
+
     def set_eta_ad3(self, double eta):
         self.thisptr.SetEtaAD3(eta)
 
