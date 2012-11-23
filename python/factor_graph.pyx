@@ -111,7 +111,7 @@ cdef class PFactorGraph:
 
         return value, p_posteriors, p_additional_posteriors
 
-    def create_factor_dense(self,  p_multi_variables, p_additional_log_potentials, bool owned_by_graph):
+    def create_factor_dense(self,  p_multi_variables, p_additional_log_potentials, bool owned_by_graph=True):
         cdef vector[MultiVariable*] multi_variables
         cdef PMultiVariable blub
         for var in p_multi_variables:

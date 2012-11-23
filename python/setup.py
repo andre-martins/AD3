@@ -13,4 +13,4 @@ src = "../ad3/"
 setup(cmdclass={'build_ext': build_ext},
     ext_modules=[Extension("ad3", ["factor_graph.pyx"], language="c++",
     include_dirs=["../"],
-    library_dirs=[src])])
+    library_dirs=[src], libraries=["ad3"])])
