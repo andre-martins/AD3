@@ -52,7 +52,14 @@ extern int project_onto_simplex(double* x, int d, double r);
 
 extern int project_onto_cone_cached(double* x, int d,
 				    vector<pair<double,int> >& y);
+				    
+extern int project_onto_budget_constraint(double* x, int d, double budget);	
 
+extern int project_onto_budget_constraint_cached(double* x,
+                                                 int d,
+                                                 double budget, 
+                                                 vector<pair<double,int> >& y);
+                                                 
 extern void StringSplit(const string &str,
 			const string &delim,
 			vector<string> *results);

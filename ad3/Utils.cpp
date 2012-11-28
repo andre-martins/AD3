@@ -17,6 +17,7 @@
 // along with AD3 2.0.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Utils.h"
+#include <limits>
 
 namespace AD3 {
 
@@ -154,7 +155,149 @@ int project_onto_cone_cached(double* x, int d,
   return 0;
 }
 
+int project_onto_budget_constraint_cached(double* x,
+                                          int d,
+                                          double budget, 
+                                          vector<pair<double,int> >& y) {
+  int j, k, l, level;
+  double s = 0.0;
+  double tau = 0.0, tightsum;
+  double left, right = -std::numeric_limits<double>::infinity();
 
+  // Load x into a reordered y (the reordering is cached).
+  if (y.size() != d) {
+    y.resize(d);
+    for (j = 0; j < d; j++) {
+      s -= x[j];
+      y[j].first = -x[j];
+      y[j].second = j;
+    }
+    sort(y.begin(), y.end());
+  } else {
+    for (j = 0; j < d; j++) {
+      s -= x[j];
+      y[j].first = -x[y[j].second];
+    }
+    // If reordering is cached, use a sorting algorithm 
+    // which is fast when the vector is almost sorted.
+    InsertionSort(&y[0], d);
+  }
+
+  tightsum = s;
+  s += budget;
+  
+  k = l = level = 0;
+  bool found = false;
+  double val_a, val_b;
+  while (k < d && l < d) {
+    if (level != 0) {
+      tau = (s - tightsum) / static_cast<double>(level);
+    }
+    if (k < d) val_a = y[k].first;
+    val_b = 1.0 + y[l].first;
+    left = right;
+    if (k == d || val_b <= val_a) {
+      right = val_b;
+    } else {
+      right = val_a;
+    }
+    if ((level == 0 && s == tightsum) || (level != 0 && tau <= right)) {
+      // Found the right split-point!
+      found = true;
+      break;
+    }
+    if (k == d || val_b <= val_a) {
+      tightsum += val_b;
+      --level;
+      ++l;
+    } else {
+      tightsum -= val_a;
+      ++level;
+      ++k;
+    }
+  }
+
+  if (!found) {
+    left = right;
+    right = std::numeric_limits<double>::infinity();
+  }
+      
+  for (j = 0; j < d; j++) {
+    if (-x[j] >= right) {
+      x[j] = 0.0;
+    } else if (1.0 - x[j] <= left) {
+      x[j] = 1.0;
+    } else {
+      x[j] += tau;
+    }
+  }
+
+  return 0;
+}
+
+int project_onto_budget_constraint(double* x, int d, double budget) {
+  int j, k, l, level;
+  double s = 0.0;
+  double tau = 0.0, tightsum;
+  double left, right = -std::numeric_limits<double>::infinity();
+  vector<double> y(d, 0.0);
+
+  for (j = 0; j < d; j++) {
+    s -= x[j];
+    y[j] = -x[j];
+  }
+  sort(y.begin(), y.end());
+  tightsum = s;
+  s += budget;
+  
+  k = l = level = 0;
+  bool found = false;
+  double val_a, val_b;
+  while (k < d && l < d) {
+    if (level != 0) {
+      tau = (s - tightsum) / static_cast<double>(level);
+    }
+    if (k < d) val_a = y[k];
+    val_b = 1.0 + y[l];
+    left = right;
+    if (k == d || val_b <= val_a) {
+      right = val_b;
+    } else {
+      right = val_a;
+    }
+    if ((level == 0 && s == tightsum) || (level != 0 && tau <= right)) {
+      // Found the right split-point!
+      found = true;
+      break;
+    }
+    if (k == d || val_b <= val_a) {
+      tightsum += val_b;
+      --level;
+      ++l;
+    } else {
+      tightsum -= val_a;
+      ++level;
+      ++k;
+    }
+  }
+
+  if (!found) {
+    left = right;
+    right = std::numeric_limits<double>::infinity();
+  }
+      
+  for (j = 0; j < d; j++) {
+    if (-x[j] >= right) {
+      x[j] = 0.0;
+    } else if (1.0 - x[j] <= left) {
+      x[j] = 1.0;
+    } else {
+      x[j] += tau;
+    }
+  }
+
+  return 0;
+}
 
 void StringSplit(const string &str,
 		 const string &delim,

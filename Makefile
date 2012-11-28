@@ -8,7 +8,7 @@ INCLUDES = -I. -I./$(AD3) -I./$(EXAMPLE_DENSE) -I./$(EXAMPLE_PARSING) \
 	-I./$(EXAMPLE_LOGIC)
 LIBS = -L/usr/local/lib -L./$(AD3)
 DEBUG = -g
-CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 $(INCLUDES)
+CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 -fPIC $(INCLUDES)
 LFLAGS = $(LIBS) -lad3
 
 all: libad3 ad3_multi simple_grid simple_parser simple_coref
@@ -40,4 +40,4 @@ clean:
 	cd $(EXAMPLE_DENSE) && $(MAKE) clean
 	cd $(EXAMPLE_PARSING) && $(MAKE) clean
 	cd $(EXAMPLE_LOGIC) && $(MAKE) clean
-	
+

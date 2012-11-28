@@ -233,6 +233,23 @@ class FactorGraph {
     return factor;
   }
 
+  // Create a new BUDGET factor.
+  Factor *CreateFactorBUDGET(const vector<BinaryVariable*> &variables,
+                             int budget,
+                             bool owned_by_graph = true) {
+    vector<bool> negated;
+    return CreateFactorBUDGET(variables, negated, budget, owned_by_graph);
+  }
+  Factor *CreateFactorBUDGET(const vector<BinaryVariable*> &variables,
+                             const vector<bool> &negated,
+                             int budget,
+                             bool owned_by_graph = true) {
+    Factor *factor = new FactorBUDGET;
+    DeclareFactor(factor, variables, negated, owned_by_graph);
+    static_cast<FactorBUDGET*>(factor)->SetBudget(budget);
+    return factor;
+  }
+
   // Create a new PAIR factor. 
   // All edge log-potentials are assumed to be zero, except for the
   // configuration where both inputs are 1, which receives the value

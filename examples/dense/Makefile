@@ -3,7 +3,7 @@ CC = g++
 DEBUG = -g
 INCLUDES = -I../.. 
 LIBS = -L/usr/local/lib/ -L../../ad3/
-CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 $(INCLUDES)
+CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 -fPIC $(INCLUDES)
 LFLAGS = $(LIBS) -lad3
 
 all : simple_grid

@@ -691,6 +691,106 @@ void FactorOROUT::SolveQP(const vector<double> &variable_log_potentials,
   }
 }
 
+// Compute the MAP (local subproblem in the projected subgradient algorithm).
+void FactorBUDGET::SolveMAP(const vector<double> &variable_log_potentials,
+                        const vector<double> &additional_log_potentials,
+                        vector<double> *variable_posteriors,
+                        vector<double> *additional_posteriors,
+                        double *value) {
+  variable_posteriors->resize(variable_log_potentials.size());
+
+  // Create a local copy of the log potentials.
+  vector<double> log_potentials(variable_log_potentials);
+
+  double valaux;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) log_potentials[f] = -log_potentials[f];
+  }
+
+  *value = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) *value -= log_potentials[f];
+  }
+
+  int num_active = 0;
+  double sum = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    valaux = log_potentials[f];
+    if (valaux < 0.0) {
+      (*variable_posteriors)[f] = negated_[f]? 1.0 : 0.0;
+    } else {
+      sum += valaux;
+      (*variable_posteriors)[f] = negated_[f]? 0.0 : 1.0;
+    }
+    ++num_active;
+  }
+
+  if (num_active > GetBudget()) {
+    vector<pair<double,int> > scores(binary_variables_.size());
+    for (int f = 0; f < binary_variables_.size(); ++f) {
+      scores[f].first = -log_potentials[f];
+      scores[f].second = f;
+    }
+    sort(scores.begin(), scores.end());
+    num_active = 0;
+    sum = 0.0;
+    for (int k = 0; k < GetBudget(); ++k) {
+      valaux = -scores[k].first;
+      if (valaux < 0.0) break;
+      int f = scores[k].second;
+      (*variable_posteriors)[f] = negated_[f]? 0.0 : 1.0;
+      sum += valaux;
+      ++num_active;      
+    }
+    for (int k = num_active; k < binary_variables_.size(); ++k) {
+      int f = scores[k].second;
+      (*variable_posteriors)[f] = negated_[f]? 1.0 : 0.0;
+    }    
+  }
+  
+  *value += sum;  
+}
+
+// Solve the QP (local subproblem in the AD3 algorithm).
+void FactorBUDGET::SolveQP(const vector<double> &variable_log_potentials,
+                       const vector<double> &additional_log_potentials,
+                       vector<double> *variable_posteriors,
+                       vector<double> *additional_posteriors) {
+  variable_posteriors->resize(variable_log_potentials.size());
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    (*variable_posteriors)[f] = negated_[f]? 
+        1 - variable_log_potentials[f] : variable_log_potentials[f];
+    if ((*variable_posteriors)[f] < 0.0) {
+      (*variable_posteriors)[f] = 0.0;
+    } else if ((*variable_posteriors)[f] > 1.0) {
+      (*variable_posteriors)[f] = 1.0;
+    }
+  }
+
+  double s = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    s += (*variable_posteriors)[f];
+  }
+
+  if (s > static_cast<double>(GetBudget())) {
+    for (int f = 0; f < binary_variables_.size(); ++f) {
+      (*variable_posteriors)[f] = negated_[f]? 
+          1 - variable_log_potentials[f] : variable_log_potentials[f];
+    }
+    project_onto_budget_constraint_cached(&(*variable_posteriors)[0], 
+                                          binary_variables_.size(), 
+                                          static_cast<double>(GetBudget()), 
+                                          last_sort_);
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) {
+      (*variable_posteriors)[f] = 1 - (*variable_posteriors)[f];
+    }
+  }
+}
+
 // Add evidence information to the factor.
 // Returns 0 if nothing changed.
 // Returns 1 if new evidence was set or new links were disabled,

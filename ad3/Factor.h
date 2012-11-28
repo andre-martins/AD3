@@ -36,6 +36,7 @@ struct FactorTypes {
     FACTOR_OR,
     FACTOR_OROUT,
     FACTOR_ATMOSTONE,
+    FACTOR_BUDGET,
     FACTOR_MULTI_DENSE
   };
 };
@@ -386,6 +387,49 @@ public:
                vector<double> *additional_posteriors);
 
  private:
+  // Cached copy of the last sort.
+  vector<pair<double,int> > last_sort_;
+};
+
+// BUDGET factor. The sum of the variables is constrained to be less than or
+// equal to the budget.
+class FactorBUDGET : public Factor {
+public:
+  int type() { return FactorTypes::FACTOR_BUDGET; }
+
+  // Print as a string.
+  void Print(ostream& stream) {
+    stream << "BUDGET";
+    Factor::Print(stream);
+    stream << " " << GetBudget() << endl;
+  }
+
+  // Get/set budget value.
+  int GetBudget() { return budget_; }
+  void SetBudget(int budget) { budget_ = budget; }
+
+  // Add evidence information to the factor.
+  int AddEvidence(vector<bool> *active_links,
+                  vector<int> *evidence,
+                  vector<int> *additional_evidence) { assert(false); }
+
+  // Compute the MAP (local subproblem in the projected subgradient algorithm).
+  void SolveMAP(const vector<double> &variable_log_potentials,
+                const vector<double> &additional_log_potentials,
+                vector<double> *variable_posteriors,
+                vector<double> *additional_posteriors,
+                double *value);
+
+  // Solve the QP (local subproblem in the AD3 algorithm).
+  void SolveQP(const vector<double> &variable_log_potentials,
+               const vector<double> &additional_log_potentials,
+               vector<double> *variable_posteriors,
+               vector<double> *additional_posteriors);
+
+ private:
+  // Budget value.
+  int budget_;
+  
   // Cached copy of the last sort.
   vector<pair<double,int> > last_sort_;
 };

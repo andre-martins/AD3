@@ -377,6 +377,10 @@ int LoadGraph(ifstream &file_graph,
       factor = factor_graph->CreateFactorOROUT(binary_variables, negated);
     } else if (fields[0] == "ANDOUT") {
       factor = factor_graph->CreateFactorANDOUT(binary_variables, negated);
+    } else if (fields[0] == "BUDGET") {
+      // Read the budget value.
+      int budget = atoi(fields[offset+num_links].c_str());      
+      factor = factor_graph->CreateFactorBUDGET(binary_variables, negated, budget);      
     } else if (fields[0] == "PAIR") {
       // If it is a soft factor, read the factor log-potential.
       double log_potential = atof(fields[offset+num_links].c_str());
