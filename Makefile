@@ -1,11 +1,12 @@
 EXAMPLE_DENSE = examples/dense
 EXAMPLE_PARSING = examples/parsing
 EXAMPLE_LOGIC = examples/logic
+EXAMPLE_SUMMARIZATION = examples/summarization
 AD3 = ad3
 OBJS = FactorTree.o
 CC = g++
 INCLUDES = -I. -I./$(AD3) -I./$(EXAMPLE_DENSE) -I./$(EXAMPLE_PARSING) \
-	-I./$(EXAMPLE_LOGIC)
+	-I./$(EXAMPLE_LOGIC) -I./$(EXAMPLE_SUMMARIZATION)
 LIBS = -L/usr/local/lib -L./$(AD3)
 DEBUG = -g
 CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 -fPIC $(INCLUDES)

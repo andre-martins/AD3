@@ -29,6 +29,7 @@
 #include "FactorTree.h"
 #include "FactorHeadAutomaton.h"
 #include "FactorGrandparentHeadAutomaton.h"
+#include "FactorSequenceCompressor.h"
 
 using namespace std;
 using namespace AD3;
@@ -507,6 +508,33 @@ int LoadGraph(ifstream &file_graph,
       factor->SetAdditionalLogPotentials(additional_scores);
       num_factor_log_potentials += additional_scores.size();
       cout << "Read head automaton factor." << endl;
+    } else if (fields[0] == "SEQUENCE_COMPRESSOR") {
+      // Read the length of the automaton.
+      int length = binary_variables.size();
+      vector<vector<int> > index_siblings(length, vector<int>(length+1, -1));
+      int total = 0;
+      vector<Sibling*> siblings;
+      vector<double> additional_scores;
+      for (int m = 0; m < length; ++m) {
+        for (int s = m+1; s <= length; ++s) {
+          // Create a fake sibling.
+          Sibling *sibling = new Sibling(0, m, s);
+          siblings.push_back(sibling);
+          // Read the sibling log-potential.
+          double log_potential = atof(fields[offset+num_links+total].c_str());
+          additional_scores.push_back(log_potential);
+          ++total;
+        }
+      }
+      factor = new FactorSequenceCompressor;
+      factor_graph->DeclareFactor(factor, binary_variables, true);
+      static_cast<FactorSequenceCompressor*>(factor)->Initialize(length, siblings);
+      for (int r = 0; r < siblings.size(); ++r) {
+        delete siblings[r];
+      }
+      factor->SetAdditionalLogPotentials(additional_scores);
+      num_factor_log_potentials += additional_scores.size();
+      cout << "Read sequence compressor factor." << endl;
     } else if (fields[0] == "GRANDPARENT_HEAD_AUTOMATON") {
       // Read the number of grandparents.
       int num_grandparents = atoi(fields[offset+num_links].c_str());
