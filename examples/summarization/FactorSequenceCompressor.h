@@ -186,6 +186,10 @@ class FactorSequenceCompressor : public GenericFactor {
         ++j;
       }
     }
+    // Unless any of the configurations is all-zeros, there is one extra
+    // common value (the sentence variable).
+    if (values1->size() > 0 && values2->size() > 0) ++count;
+
     return count;
   }
 
