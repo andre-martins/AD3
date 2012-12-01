@@ -24,8 +24,45 @@
 namespace AD3 {
 
 class FactorSequence : public GenericFactor {
+ protected:
+  double GetNodeScore(int position,
+                      int state,
+                      const vector<double> &variable_log_potentials,
+                      const vector<double> &additional_log_potentials) {
+    return variable_log_potentials[offset_states_[position] + state];
+  }
+
+  // The edge connects node[position-1] to node[position].
+  double GetEdgeScore(int position,
+                      int previous_state,
+                      int state,
+                      const vector<double> &variable_log_potentials,
+                      const vector<double> &additional_log_potentials) {
+    int index = index_edges_[position][previous_state][state];
+    return additional_log_potentials[index];
+  }
+
+  double AddNodePosterior(int position,
+                          int state,
+                          double weight,
+                          vector<double> *variable_posteriors,
+                          vector<double> *additional_posteriors) {
+    (*variable_posteriors)[offset_states_[position] + state] += weight;
+  }
+
+  // The edge connects node[position-1] to node[position].
+  double AddEdgePosterior(int position,
+                          int previous_state,
+                          int state,
+                          double weight,
+                          vector<double> *variable_posteriors,
+                          vector<double> *additional_posteriors) {
+    int index = index_edges_[position][previous_state][state];
+    (*additional_posteriors)[index] += weight;
+  }
+
  public:
-  // Compute the score of a given assignment.
+  // Obtain the best configuration.
   void Maximize(const vector<double> &variable_log_potentials,
                 const vector<double> &additional_log_potentials,
                 Configuration &configuration,
@@ -34,19 +71,19 @@ class FactorSequence : public GenericFactor {
     int length = num_states_.size();
     vector<vector<double> > values(length);
     vector<vector<int> > path(length);
-    int offset_states = 0;
 
     // Initialization.
     int num_states = num_states_[0];
     values[0].resize(num_states);
     path[0].resize(num_states);
     for (int l = 0; l < num_states; ++l) {
-      int index = index_edges_[0][0][l];
-      values[0][l] = variable_log_potentials[offset_states + l] +
-        additional_log_potentials[index]; 
+      values[0][l] =
+        GetNodeScore(0, l, variable_log_potentials,
+                     additional_log_potentials) +
+        GetEdgeScore(0, 0, l, variable_log_potentials,
+                     additional_log_potentials); 
       path[0][l] = -1; // This won't be used.
     }
-    offset_states += num_states;
 
     // Recursion.
     for (int i = 0; i < length - 1; ++i) {
@@ -57,27 +94,28 @@ class FactorSequence : public GenericFactor {
         double best_value;
         int best = -1;
         for (int l = 0; l < num_states_[i]; ++l) {
-          int index = index_edges_[i+1][l][k];
-          double val = values[i][l] + additional_log_potentials[index];
+          double val = values[i][l] + 
+            GetEdgeScore(i+1, l, k, variable_log_potentials,
+                         additional_log_potentials); 
           if (best < 0 || val > best_value) {
             best_value = val;
             best = l;
           }
         }
         values[i+1][k] = best_value + 
-          variable_log_potentials[offset_states + k];
+          GetNodeScore(i+1, k, variable_log_potentials,
+                       additional_log_potentials);
         path[i+1][k] = best;
       }
-      offset_states += num_states;
     }
 
     // Termination.
     double best_value;
     int best = -1;
     for (int l = 0; l < num_states_[length - 1]; ++l) {
-      int index = index_edges_[length][l][0];
       double val = values[length - 1][l] + 
-        additional_log_potentials[index]; 
+        GetEdgeScore(length, l, 0, variable_log_potentials,
+                     additional_log_potentials); 
       if (best < 0 || val > best_value) {
         best_value = val;
         best = l;
@@ -103,18 +141,19 @@ class FactorSequence : public GenericFactor {
     const vector<int>* sequence =
         static_cast<const vector<int>*>(configuration);
     *value = 0.0;
-    int offset_states = 0;
     int previous_state = 0;
     for (int i = 0; i < sequence->size(); ++i) {
       int state = (*sequence)[i];
-      *value += variable_log_potentials[offset_states + state];
-      offset_states += num_states_[i]; 
-      int index = index_edges_[i][previous_state][state];
-      *value += additional_log_potentials[index];
+      *value += GetNodeScore(i, state, variable_log_potentials,
+                             additional_log_potentials);
+      *value += GetEdgeScore(i, previous_state, state, 
+                             variable_log_potentials,
+                             additional_log_potentials);
       previous_state = state;
     }
-    int index = index_edges_[sequence->size()][previous_state][0];
-    *value += additional_log_potentials[index];
+    *value += GetEdgeScore(sequence->size(), previous_state, 0, 
+                           variable_log_potentials,
+                           additional_log_potentials);
   }
 
   // Given a configuration with a probability (weight), 
@@ -126,18 +165,20 @@ class FactorSequence : public GenericFactor {
     vector<double> *additional_posteriors) {
     const vector<int> *sequence =
         static_cast<const vector<int>*>(configuration);
-    int offset_states = 0;
     int previous_state = 0;
     for (int i = 0; i < sequence->size(); ++i) {
       int state = (*sequence)[i];
-      (*variable_posteriors)[offset_states + state] += weight;
-      offset_states += num_states_[i]; 
-      int index = index_edges_[i][previous_state][state];
-      (*additional_posteriors)[index] += weight;
+      AddNodePosterior(i, state, weight,
+                       variable_posteriors,
+                       additional_posteriors);
+      AddEdgePosterior(i, previous_state, state, weight,
+                       variable_posteriors,
+                       additional_posteriors);
       previous_state = state;
     }
-    int index = index_edges_[sequence->size()][previous_state][0];
-    (*additional_posteriors)[index] += weight;
+    AddEdgePosterior(sequence->size(), previous_state, 0, weight,
+                     variable_posteriors,
+                     additional_posteriors);
   }
 
   // Count how many common values two configurations have.
@@ -190,6 +231,12 @@ class FactorSequence : public GenericFactor {
     int length = num_states.size();
     num_states_ = num_states;
     index_edges_.resize(length + 1);
+    offset_states_.resize(length);
+    int offset = 0;
+    for (int i = 0; i < length; ++i) {
+      offset_states_[i] = offset;
+      offset += num_states_[i];
+    }
     int index = 0;
     for (int i = 0; i <= length; ++i) {
       // If i == 0, the previous state is the start symbol.
@@ -210,6 +257,8 @@ class FactorSequence : public GenericFactor {
  private:
   // Number of states for each position.
   vector<int> num_states_;
+  // Offset of states for each position.
+  vector<int> offset_states_;
   // At each position, map from edges of states to a global index which 
   // matches the index of additional_log_potentials_.
   vector<vector<vector<int> > > index_edges_; 
