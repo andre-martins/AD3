@@ -34,6 +34,7 @@
 #include "FactorHeadAutomaton.h"
 #include "FactorGrandparentHeadAutomaton.h"
 #include "FactorSequenceCompressor.h"
+#include "FactorSequenceBudget.h"
 
 using namespace std;
 using namespace AD3;
@@ -426,9 +427,19 @@ int LoadGraph(ifstream &file_graph,
       factor->SetAdditionalLogPotentials(additional_scores);
       num_factor_log_potentials += additional_scores.size();
       cout << "Read dense factor." << endl;
-    } else if (fields[0] == "SEQUENCE") {
+    } else if (fields[0] == "SEQUENCE" ||
+               fields[0] == "SEQUENCE_BUDGET") {
+      bool has_budget = false;
+      if (fields[0] == "SEQUENCE_BUDGET") has_budget = true;
       // Read the sequence length.
       int length = atoi(fields[offset+num_links].c_str());
+      // If budget, read the budget.
+      int budget = -1;
+      if (has_budget) {
+        ++offset; // TODO: Make sure this is fine.
+        budget = atoi(fields[offset+num_links].c_str());
+      }
+
       // Read the number of states for each position in the sequence.
       vector<int> num_states(length);
       int total_states = 0;
@@ -460,12 +471,22 @@ int LoadGraph(ifstream &file_graph,
       }
 
       // Create the factor and declare it.
-      factor = new FactorSequence;
-      factor_graph->DeclareFactor(factor, binary_variables, true);
-      static_cast<FactorSequence*>(factor)->Initialize(num_states);
-      factor->SetAdditionalLogPotentials(additional_scores);
-      num_factor_log_potentials += additional_scores.size();
-      cout << "Read sequence factor." << endl;
+      if (has_budget) {
+        factor = new FactorSequenceBudget;
+        factor_graph->DeclareFactor(factor, binary_variables, true);
+        static_cast<FactorSequenceBudget*>(factor)->
+          Initialize(num_states, budget);
+        factor->SetAdditionalLogPotentials(additional_scores);
+        num_factor_log_potentials += additional_scores.size();
+        cout << "Read sequence budget factor." << endl;
+      } else {
+        factor = new FactorSequence;
+        factor_graph->DeclareFactor(factor, binary_variables, true);
+        static_cast<FactorSequence*>(factor)->Initialize(num_states);
+        factor->SetAdditionalLogPotentials(additional_scores);
+        num_factor_log_potentials += additional_scores.size();
+        cout << "Read sequence factor." << endl;
+      }        
     } else if (fields[0] == "ARBORESCENCE") {
       // Read the sentence length.
       int sentence_length = atoi(fields[offset+num_links].c_str());
