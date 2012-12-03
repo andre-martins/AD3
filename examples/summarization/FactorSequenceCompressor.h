@@ -241,6 +241,26 @@ class FactorSequenceCompressor : public GenericFactor {
     }
   }
 
+  void Initialize(int length, const vector<int> &left_positions,
+                  const vector<int> &right_positions) {
+    length_ = length;
+    index_siblings_.assign(length, vector<int>(length+1, -1));
+    assert(left_positions.size() == right_positions.size());
+    for (int k = 0; k < left_positions.size(); ++k) {
+      int h = 0;
+      int m = left_positions[k];
+      int s = right_positions[k];
+      if (s > h) {
+        m -= h;
+        s -= h;
+      } else {
+        m = h - m;
+        s = h - s;
+      }
+      index_siblings_[m][s] = k;
+    }
+  }
+
  private:
   int length_;
   vector<vector<int> > index_siblings_;
