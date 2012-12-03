@@ -38,17 +38,17 @@ void GetBestConfiguration(int grid_size, int num_states,
                             &multi_variables,
                           double alpha,
                           const vector<double> &posteriors);
-                          
+
 int main(int argc, char **argv) {
-  int grid_size = 20; 
+  int grid_size = 20;
   int num_states = 5;
-  
+
   cout << "Creating model for a " << grid_size << "x" << grid_size
        << " grid with " << num_states << " states..."
        << endl;
-       
+
   cout << "Building factor graph..."
-       << endl;       
+       << endl;
 
   // Create factor graph.
   AD3::FactorGraph factor_graph;
@@ -81,12 +81,12 @@ int main(int argc, char **argv) {
       ++t;
     }
   }
-  
+
   // Create a factor for each edge in the grid.
   for (int i = 0; i < grid_size; ++i) {
     for (int j = 0; j < grid_size; ++j) {
       vector<AD3::MultiVariable*> multi_variables_local(2);
-            
+
       // Horizontal edge.
       if (j > 0) {
         multi_variables_local[0] = multi_variables[i][j-1];
@@ -132,12 +132,12 @@ int main(int argc, char **argv) {
 
 
   cout << "Building sequential factor graph..."
-       << endl;       
+       << endl;
 
-  // Create a factor graph using sequence-factors which is equivalent to the 
+  // Create a factor graph using sequence-factors which is equivalent to the
   // previous one.
   AD3::FactorGraph sequential_factor_graph;
-  
+
   // Create a binary variable for each state at each position in the grid.
   vector<vector<vector<AD3::BinaryVariable*> > > binary_variables(grid_size,
     vector<vector<AD3::BinaryVariable*> >(grid_size,
@@ -153,14 +153,14 @@ int main(int argc, char **argv) {
       }
     }
   }
-  
+
   // Design the edge log-potentials.
   // Right now they are diagonal and favoring smooth configurations, but
   // that needs not be the case.
   additional_log_potentials.clear();
   for (int i = 0; i <= grid_size; ++i) {
     int num_previous_states = (i == 0)? 1 : num_states;
-    int num_current_states = (i == grid_size)? 1 : num_states;    
+    int num_current_states = (i == grid_size)? 1 : num_states;
     for (int k = 0; k < num_previous_states; ++k) {
       for (int l = 0; l < num_current_states; ++l) {
         if (i != 0 && i != grid_size) {
@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
       }
     }
   }
-  
+
   // Create a sequential factor for each row in the grid.
   for (int i = 0; i < grid_size; ++i) {
     vector<AD3::BinaryVariable*> variables;
@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
     for (int j = 0; j < grid_size; ++j) {
       variables.insert(variables.end(),
                        binary_variables[i][j].begin(),
-                       binary_variables[i][j].end());     
+                       binary_variables[i][j].end());
       num_states[j] = binary_variables[i][j].size();
     }
     AD3::Factor *factor = new AD3::FactorSequence;
@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < grid_size; ++i) {
       variables.insert(variables.end(),
                        binary_variables[i][j].begin(),
-                       binary_variables[i][j].end());     
+                       binary_variables[i][j].end());
       num_states[i] = binary_variables[i][j].size();
     }
     AD3::Factor *factor = new AD3::FactorSequence;
