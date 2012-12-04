@@ -102,7 +102,9 @@ class FactorGeneralTreeCounts : public GenericFactor {
         int bin = 0;
         // The state that we are counting.
         if (l == GetCountingState()) ++bin;
-        (*values)[i][l].resize(bin+1, MinusInfinity());
+        //(*values)[i][l].resize(bin+1, MinusInfinity());
+        // TODO: correct this.
+        (*values)[i][l].resize(2, MinusInfinity());
         (*values)[i][l][bin] =
           GetNodeScore(i, l, variable_log_potentials,
                        additional_log_potentials);
@@ -128,7 +130,9 @@ class FactorGeneralTreeCounts : public GenericFactor {
       for (int k = 0; k < num_states; ++k) {
         int num_bins_state = num_bins;
         if (k == GetCountingState()) ++num_bins_state;
-        (*values)[i][k].resize(num_bins_state, MinusInfinity());
+        //(*values)[i][k].resize(num_bins_state, MinusInfinity());
+        // TODO: correct this.
+        (*values)[i][k].resize(num_bins+1, MinusInfinity());
         for (int b = 0; b < num_bins; ++b) {
           int bin = b;
           if (k == GetCountingState()) ++bin;
@@ -166,7 +170,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
             best_labels[t][b] = best;
           }
         }
-
+        
         // Now, aggregate everything and compute the best values
         // for each bin in the parent node.
         // This is done sequentially, by looking at the children
@@ -181,8 +185,11 @@ class FactorGeneralTreeCounts : public GenericFactor {
           // Make room for path and path_bin.
           int num_bins_state = num_bins;
           if (k == GetCountingState()) ++num_bins_state;
-          (*path)[j][k].resize(num_bins_state);
-          (*path_bin)[j][k].resize(num_bins_state);
+          //(*path)[j][k].resize(num_bins_state);
+          //(*path_bin)[j][k].resize(num_bins_state);
+          // TODO: correct this.
+          (*path)[j][k].resize(num_bins+1);
+          (*path_bin)[j][k].resize(num_bins+1);
 
           int num_bins_child =
             (*values)[j][GetCountingState()].size();
@@ -206,9 +213,13 @@ class FactorGeneralTreeCounts : public GenericFactor {
             int best = -1;
             double best_value = MinusInfinity();
             for (int b2 = bmin; b2 <= bmax; ++b2) {
+              //cout << b2 << " " << bmin << " " << bmax << endl;
               int b1 = b - b2;
               int l = best_labels[t][b2];
-              double val = (*values)[j][b2][l] + 
+              //cout << "l=" << l << endl;
+              //cout << (*values)[j].size() << endl;
+              //cout << (*values)[j][l].size() << endl;
+              double val = (*values)[j][l][b2] + 
                 GetEdgeScore(j, l, k, variable_log_potentials,
                              additional_log_potentials);
               val += best_values[b1];
@@ -248,6 +259,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
       (*path)[i].resize(1);
       int num_bins = (*values)[i][GetCountingState()].size();
       assert(num_bins == num_states_.size()+1);
+      (*path)[i][0].resize(num_bins);
       for (int b = 0; b < num_bins; ++b) {
         double best_value;
         int best = -1;
@@ -374,16 +386,21 @@ class FactorGeneralTreeCounts : public GenericFactor {
     int best_bin = -1;
     for (int b = 0; b < path[root][0].size(); ++b) {
       int l = path[root][0][b];
-      double val = values[root][best_state][b];
+      double val = values[root][l][b];
       val += GetCountScore(b, variable_log_potentials,
                            additional_log_potentials);
       if (best_state < 0 || val > best_value) {
         best_value = val;
         best_state = l;
+        best_bin = b;
       }
     }
     
     *value = best_value;
+
+    //cout << "best_bin = " << best_bin << endl;
+    //cout << "best_value = " << best_value << endl;
+    //cout << "Backtracking..." << endl;
 
     // Path (state sequence) backtracking.
     vector<int> *sequence = static_cast<vector<int>*>(configuration);
