@@ -42,21 +42,21 @@ class FactorSequence : public GenericFactor {
     return additional_log_potentials[index];
   }
 
-  double AddNodePosterior(int position,
-                          int state,
-                          double weight,
-                          vector<double> *variable_posteriors,
-                          vector<double> *additional_posteriors) {
+  void AddNodePosterior(int position,
+                        int state,
+                        double weight,
+                        vector<double> *variable_posteriors,
+                        vector<double> *additional_posteriors) {
     (*variable_posteriors)[offset_states_[position] + state] += weight;
   }
 
   // The edge connects node[position-1] to node[position].
-  double AddEdgePosterior(int position,
-                          int previous_state,
-                          int state,
-                          double weight,
-                          vector<double> *variable_posteriors,
-                          vector<double> *additional_posteriors) {
+  void AddEdgePosterior(int position,
+                        int previous_state,
+                        int state,
+                        double weight,
+                        vector<double> *variable_posteriors,
+                        vector<double> *additional_posteriors) {
     int index = index_edges_[position][previous_state][state];
     (*additional_posteriors)[index] += weight;
   }
