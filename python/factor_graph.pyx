@@ -10,6 +10,7 @@ cdef extern from "../ad3/Factor.h" namespace "AD3":
         BinaryVariable()
         double GetLogPotential()
         void SetLogPotential(double log_potential)
+        int GetId()
 
     cdef cppclass Factor:
         Factor()
@@ -18,6 +19,7 @@ cdef extern from "../ad3/Factor.h" namespace "AD3":
 cdef extern from "../ad3/MultiVariable.h" namespace "AD3":
     cdef cppclass MultiVariable:
         int GetNumStates()
+        BinaryVariable *GetState(int i)
         double GetLogPotential(int i)
         void SetLogPotential(int i, double log_potential)
 
@@ -33,9 +35,9 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
         int SolveLPMAPWithAD3(vector[double]* posteriors,
                               vector[double]* additional_posteriors,
                               double* value)
-        int SolveExactMAPWithAD3(vector[double] *posteriors,
-                                 vector[double] *additional_posteriors, 
-                                 double *value)
+        int SolveExactMAPWithAD3(vector[double]* posteriors,
+                                 vector[double]* additional_posteriors,
+                                 double* value)
 
         BinaryVariable *CreateBinaryVariable()
         MultiVariable *CreateMultiVariable(int num_states)
@@ -67,6 +69,7 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
                                  double edge_log_potential,
                                  bool owned_by_graph)
         Factor *CreateFactorBUDGET(vector[BinaryVariable*] variables,
+                                   vector[bool] negated,
                                    int budget,
                                    bool owned_by_graph)                                   
         void DeclareFactor(Factor *factor,
@@ -84,6 +87,15 @@ cdef extern from "examples/summarization/FactorSequenceCompressor.h" namespace "
         void Initialize(int length, vector[int] left_positions,
                         vector[int] right_positions)
 
+cdef extern from "examples/summarization/FactorGeneralTree.h" namespace "AD3":
+    cdef cppclass FactorGeneralTree(Factor):        
+        FactorGeneralTree()
+        void Initialize(vector[int] parents, vector[int] num_states)
+
+cdef extern from "examples/summarization/FactorGeneralTreeCounts.h" namespace "AD3":
+    cdef cppclass FactorGeneralTreeCounts(Factor):        
+        FactorGeneralTreeCounts()
+        void Initialize(vector[int] parents, vector[int] num_states)
 
 # wrap them into python extension types
 cdef class PBinaryVariable:
@@ -103,6 +115,9 @@ cdef class PBinaryVariable:
 
     def set_log_potential(self, double log_potential):
         self.thisptr.SetLogPotential(log_potential)
+        
+    def get_id(self):
+        return self.thisptr.GetId()
 
 
 cdef class PFactor:
@@ -151,6 +166,34 @@ cdef class PFactorSequenceCompressor(PFactor):
         (<FactorSequenceCompressor*>self.thisptr).Initialize(length, left_positions, right_positions)
 
 
+cdef class PFactorGeneralTree(PFactor):
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+           self.thisptr = new FactorGeneralTree()
+
+    def __dealloc__(self):
+        if self.allocate:
+            del self.thisptr
+        
+    def initialize(self, vector[int] parents, vector[int] num_states):
+        (<FactorGeneralTree*>self.thisptr).Initialize(parents, num_states)
+
+
+cdef class PFactorGeneralTreeCounts(PFactor):
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+           self.thisptr = new FactorGeneralTreeCounts()
+
+    def __dealloc__(self):
+        if self.allocate:
+            del self.thisptr
+        
+    def initialize(self, vector[int] parents, vector[int] num_states):
+        (<FactorGeneralTreeCounts*>self.thisptr).Initialize(parents, num_states)
+
+
 cdef class PMultiVariable:
     cdef MultiVariable *thisptr
     cdef bool allocate
@@ -162,6 +205,12 @@ cdef class PMultiVariable:
     def __dealloc__(self):
         if self.allocate:
             del self.thisptr
+            
+    def get_state(self, int i):
+        cdef BinaryVariable *variable = self.thisptr.GetState(i)
+        pvariable = PBinaryVariable(allocate=False)
+        pvariable.thisptr = variable
+        return pvariable
 
     def get_log_potential(self, int i):
         return self.thisptr.GetLogPotential(i)
@@ -226,11 +275,13 @@ cdef class PFactorGraph:
             variables.push_back((<PBinaryVariable>var).thisptr)
         self.thisptr.CreateFactorPAIR(variables, edge_log_potential, owned_by_graph)
 
-    def create_factor_budget(self, p_variables, int budget, bool owned_by_graph=True):
+    def create_factor_budget(self, p_variables, p_negated, int budget, bool owned_by_graph=True):
         cdef vector[BinaryVariable*] variables
-        for var in p_variables:
+        cdef vector[bool] negated
+        for i, var in enumerate(p_variables):
             variables.push_back((<PBinaryVariable>var).thisptr)
-        self.thisptr.CreateFactorBUDGET(variables, budget, owned_by_graph)
+            negated.push_back(p_negated[i])
+        self.thisptr.CreateFactorBUDGET(variables, negated, budget, owned_by_graph)
 
     def create_factor_dense(self,  p_multi_variables, p_additional_log_potentials, bool owned_by_graph=True):
         cdef vector[MultiVariable*] multi_variables
@@ -296,5 +347,20 @@ cdef class PFactorGraph:
             p_additional_posteriors.append(additional_posteriors[i])
 
         return value, p_posteriors, p_additional_posteriors, solver_status
+
+    def solve_exact_map_ad3(self):
+        cdef vector[double] posteriors
+        cdef vector[double] additional_posteriors
+        cdef double value
+        self.thisptr.SolveExactMAPWithAD3(&posteriors, &additional_posteriors,
+                                          &value)
+        p_posteriors, p_additional_posteriors = [], []
+        cdef size_t i
+        for i in range(posteriors.size()):
+            p_posteriors.append(posteriors[i])
+        for i in range(additional_posteriors.size()):
+            p_additional_posteriors.append(additional_posteriors[i])
+
+        return value, p_posteriors, p_additional_posteriors
 
 
