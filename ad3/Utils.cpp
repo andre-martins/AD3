@@ -19,9 +19,6 @@
 #include "Utils.h"
 #include <limits>
 
-#include <iostream> // REMOVE THIS
-using namespace std; // REMOVE THIS
-
 namespace AD3 {
 
 int diff_ms(timeval t1, timeval t2) {
@@ -193,7 +190,7 @@ int project_onto_budget_constraint_cached(double* x,
   bool found = false;
   double val_a;
   double val_b;
-  while (k < d && l < d) {
+  while (k < d || l < d) {
     if (level != 0) {
       tau = (s - tightsum) / static_cast<double>(level);
     }
@@ -257,7 +254,7 @@ int project_onto_budget_constraint(double* x, int d, double budget) {
   k = l = level = 0;
   bool found = false;
   double val_a, val_b;
-  while (k < d && l < d) {
+  while (k < d || l < d) {
     if (level != 0) {
       tau = (s - tightsum) / static_cast<double>(level);
     }
