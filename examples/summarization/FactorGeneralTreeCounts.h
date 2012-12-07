@@ -149,11 +149,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
         }
       }
 
-      //cout << "chk 1" << endl;
-
       for (int k = 0; k < num_states; ++k) {
-        //cout << "chk 2" << endl;
-
         // Incorporate the transitions. For each child node
         // and for each bin (in the child node) get the best label
         // and corresponding value for that bin.
@@ -202,8 +198,6 @@ class FactorGeneralTreeCounts : public GenericFactor {
           //cout << "BEST_LABEL[" << t << "][" << num_bins_child << "] = "
           //     <<  GetCountingState() << endl; 
         }
-
-        //cout << "chk 3" << endl;
 
         // Now, aggregate everything and compute the best values
         // for each bin in the parent node.

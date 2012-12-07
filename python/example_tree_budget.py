@@ -5,10 +5,10 @@ import pdb
 
 import ad3
 
-num_nodes = 30
-max_num_states = 5
-lower_bound = 0 #5 # Minimum number of zeros.
-upper_bound = 30 #10 # Maximum number of zeros.
+num_nodes = 5 #30
+max_num_states = 1 #5
+lower_bound = 3 #5 # Minimum number of zeros.
+upper_bound = 4 #10 # Maximum number of zeros.
 
 # Create a random tree.
 max_num_children = 5
