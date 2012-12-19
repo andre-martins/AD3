@@ -25,38 +25,38 @@ namespace AD3 {
 
 class FactorGeneralTree : public GenericFactor {
  protected:
-  double GetNodeScore(int position,
-                      int state,
-                      const vector<double> &variable_log_potentials,
-                      const vector<double> &additional_log_potentials) {
+    virtual double GetNodeScore(int position,
+                                int state,
+                                const vector<double> &variable_log_potentials,
+                                const vector<double> &additional_log_potentials) {
     return variable_log_potentials[offset_states_[position] + state];
   }
 
   // The edge connects node[position] to its parent node.
-  double GetEdgeScore(int position,
-                      int state,
-                      int parent_state,
-                      const vector<double> &variable_log_potentials,
-                      const vector<double> &additional_log_potentials) {
+  virtual double GetEdgeScore(int position,
+                              int state,
+                              int parent_state,
+                              const vector<double> &variable_log_potentials,
+                              const vector<double> &additional_log_potentials) {
     int index = index_edges_[position][state][parent_state];
     return additional_log_potentials[index];
   }
 
-  void AddNodePosterior(int position,
-                        int state,
-                        double weight,
-                        vector<double> *variable_posteriors,
-                        vector<double> *additional_posteriors) {
+  virtual void AddNodePosterior(int position,
+                                int state,
+                                double weight,
+                                vector<double> *variable_posteriors,
+                                vector<double> *additional_posteriors) {
     (*variable_posteriors)[offset_states_[position] + state] += weight;
   }
 
   // The edge connects node[position] to its parent node.
-  void AddEdgePosterior(int position,
-                        int state,
-                        int parent_state,
-                        double weight,
-                        vector<double> *variable_posteriors,
-                        vector<double> *additional_posteriors) {
+  virtual void AddEdgePosterior(int position,
+                                int state,
+                                int parent_state,
+                                double weight,
+                                vector<double> *variable_posteriors,
+                                vector<double> *additional_posteriors) {
     int index = index_edges_[position][state][parent_state];
     (*additional_posteriors)[index] += weight;
   }
@@ -68,7 +68,7 @@ class FactorGeneralTree : public GenericFactor {
   int GetRoot() { return 0; }
   int GetNumChildren(int i) { return children_[i].size(); }
   int GetChild(int i, int t) { return children_[i][t]; }
-  int GetNumStates(int i) { return num_states_[i]; }
+  virtual int GetNumStates(int i) { return num_states_[i]; }
 
   void RunViterbiForward(const vector<double> &variable_log_potentials,
                          const vector<double> &additional_log_potentials,
@@ -214,10 +214,10 @@ class FactorGeneralTree : public GenericFactor {
   
  public:
   // Obtain the best configuration.
-  void Maximize(const vector<double> &variable_log_potentials,
-                const vector<double> &additional_log_potentials,
-                Configuration &configuration,
-                double *value) {
+  virtual void Maximize(const vector<double> &variable_log_potentials,
+                        const vector<double> &additional_log_potentials,
+                        Configuration &configuration,
+                        double *value) {
     // Decode using the Viterbi algorithm.
     int length = num_states_.size();
     vector<vector<double> > values(length);
@@ -238,10 +238,10 @@ class FactorGeneralTree : public GenericFactor {
   }
 
   // Compute the score of a given assignment.
-  void Evaluate(const vector<double> &variable_log_potentials,
-                const vector<double> &additional_log_potentials,
-                const Configuration configuration,
-                double *value) {
+  virtual void Evaluate(const vector<double> &variable_log_potentials,
+                        const vector<double> &additional_log_potentials,
+                        const Configuration configuration,
+                        double *value) {
     const vector<int>* sequence =
         static_cast<const vector<int>*>(configuration);
     *value = 0.0;
@@ -255,11 +255,11 @@ class FactorGeneralTree : public GenericFactor {
 
   // Given a configuration with a probability (weight), 
   // increment the vectors of variable and additional posteriors.
-  void UpdateMarginalsFromConfiguration(
-    const Configuration &configuration,
-    double weight,
-    vector<double> *variable_posteriors,
-    vector<double> *additional_posteriors) {
+  virtual void UpdateMarginalsFromConfiguration(
+      const Configuration &configuration,
+      double weight,
+      vector<double> *variable_posteriors,
+      vector<double> *additional_posteriors) {
     const vector<int> *sequence =
         static_cast<const vector<int>*>(configuration);
 
@@ -271,8 +271,8 @@ class FactorGeneralTree : public GenericFactor {
   }
 
   // Count how many common values two configurations have.
-  int CountCommonValues(const Configuration &configuration1,
-                        const Configuration &configuration2) {
+  virtual int CountCommonValues(const Configuration &configuration1,
+                                const Configuration &configuration2) {
     const vector<int> *sequence1 =
         static_cast<const vector<int>*>(configuration1);
     const vector<int> *sequence2 =
@@ -286,7 +286,7 @@ class FactorGeneralTree : public GenericFactor {
   }
 
   // Check if two configurations are the same.
-  bool SameConfiguration(
+  virtual bool SameConfiguration(
     const Configuration &configuration1,
     const Configuration &configuration2) {
     const vector<int> *sequence1 = static_cast<const vector<int>*>(configuration1);
@@ -299,13 +299,13 @@ class FactorGeneralTree : public GenericFactor {
   }
 
   // Delete configuration.
-  void DeleteConfiguration(
+  virtual void DeleteConfiguration(
     Configuration configuration) {
     vector<int> *sequence = static_cast<vector<int>*>(configuration);
     delete sequence;
   }
 
-  Configuration CreateConfiguration() {
+  virtual Configuration CreateConfiguration() {
     int length = num_states_.size();
     vector<int>* sequence = new vector<int>(length, -1);
     return static_cast<Configuration>(sequence); 
@@ -357,7 +357,7 @@ class FactorGeneralTree : public GenericFactor {
     }
   }
 
- private:
+ protected:
   // Parent of each node.
   vector<int> parents_;
   // Children of each node.
