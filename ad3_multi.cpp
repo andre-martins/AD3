@@ -33,6 +33,7 @@
 #include "FactorSequenceBudget.h"
 #include "FactorGeneralTree.h"
 #include "FactorGeneralTreeCounts.h"
+#include "FactorBinaryTree.h"
 
 using namespace std;
 using namespace AD3;
