@@ -35,6 +35,7 @@
 #include "FactorGrandparentHeadAutomaton.h"
 #include "FactorSequenceCompressor.h"
 #include "FactorSequenceBudget.h"
+#include "FactorCompressionBudget.h"
 #include "FactorGeneralTree.h"
 #include "FactorGeneralTreeCounts.h"
 #include "FactorBinaryTree.h"
