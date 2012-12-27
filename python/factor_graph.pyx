@@ -96,6 +96,11 @@ cdef extern from "examples/summarization/FactorBinaryTree.h" namespace "AD3":
         FactorBinaryTree()
         void Initialize(vector[int] parents)
 
+cdef extern from "examples/summarization/FactorBinaryTreeCounts.h" namespace "AD3":
+    cdef cppclass FactorBinaryTreeCounts(Factor):        
+        FactorBinaryTreeCounts()
+        void Initialize(vector[int] parents)
+
 cdef extern from "examples/summarization/FactorGeneralTree.h" namespace "AD3":
     cdef cppclass FactorGeneralTree(Factor):        
         FactorGeneralTree()
@@ -203,6 +208,20 @@ cdef class PFactorBinaryTree(PFactor):
         (<FactorBinaryTree*>self.thisptr).Initialize(parents)
 
 
+cdef class PFactorBinaryTreeCounts(PFactor):
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+           self.thisptr = new FactorBinaryTreeCounts()
+
+    def __dealloc__(self):
+        if self.allocate:
+            del self.thisptr
+        
+    def initialize(self, vector[int] parents):
+        (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents)
+        
+        
 cdef class PFactorGeneralTree(PFactor):
     def __cinit__(self, allocate=True):
         self.allocate = allocate

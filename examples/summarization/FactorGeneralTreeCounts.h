@@ -26,54 +26,60 @@ namespace AD3 {
 
 class FactorGeneralTreeCounts : public GenericFactor {
  protected:
-  double GetNodeScore(int position,
-                      int state,
-                      const vector<double> &variable_log_potentials,
-                      const vector<double> &additional_log_potentials) {
+  virtual double GetNodeScore(int position,
+                              int state,
+                              const vector<double> &variable_log_potentials,
+                              const vector<double> &additional_log_potentials) {
     return variable_log_potentials[offset_states_[position] + state];
   }
 
   // The edge connects node[position] to its parent node.
-  double GetEdgeScore(int position,
-                      int state,
-                      int parent_state,
-                      const vector<double> &variable_log_potentials,
-                      const vector<double> &additional_log_potentials) {
+  virtual double GetEdgeScore(int position,
+                              int state,
+                              int parent_state,
+                              const vector<double> &variable_log_potentials,
+                              const vector<double> &additional_log_potentials) {
     int index = index_edges_[position][state][parent_state];
     return additional_log_potentials[index];
   }
 
-  double GetCountScore(int count,
-                      const vector<double> &variable_log_potentials,
-                      const vector<double> &additional_log_potentials) {
+  virtual double GetCountScore(int count,
+                               const vector<double> &variable_log_potentials,
+                               const vector<double> &additional_log_potentials) {
     return variable_log_potentials[offset_counts_ + count];
   }
 
-  void AddNodePosterior(int position,
-                        int state,
-                        double weight,
-                        vector<double> *variable_posteriors,
-                        vector<double> *additional_posteriors) {
+  virtual void AddNodePosterior(int position,
+                                int state,
+                                double weight,
+                                vector<double> *variable_posteriors,
+                                vector<double> *additional_posteriors) {
     (*variable_posteriors)[offset_states_[position] + state] += weight;
   }
 
   // The edge connects node[position] to its parent node.
-  void AddEdgePosterior(int position,
-                        int state,
-                        int parent_state,
-                        double weight,
-                        vector<double> *variable_posteriors,
-                        vector<double> *additional_posteriors) {
+  virtual void AddEdgePosterior(int position,
+                                int state,
+                                int parent_state,
+                                double weight,
+                                vector<double> *variable_posteriors,
+                                vector<double> *additional_posteriors) {
     int index = index_edges_[position][state][parent_state];
     (*additional_posteriors)[index] += weight;
   }
 
-  double AddCountScore(int count,
-                       double weight,
-                       vector<double> *variable_posteriors,
-                       vector<double> *additional_posteriors) {
+  virtual double AddCountScore(int count,
+                               double weight,
+                               vector<double> *variable_posteriors,
+                               vector<double> *additional_posteriors) {
     (*variable_posteriors)[offset_counts_ + count] += weight;
   }
+
+  virtual int GetNumStates(int i) { return num_states_[i]; }
+
+  virtual int GetCountingState() { return 0; }
+
+  int GetLength() { return parents_.size(); }
 
   bool IsLeaf(int i) {
     return children_[i].size() == 0;
@@ -82,8 +88,6 @@ class FactorGeneralTreeCounts : public GenericFactor {
   int GetRoot() { return 0; }
   int GetNumChildren(int i) { return children_[i].size(); }
   int GetChild(int i, int t) { return children_[i][t]; }
-  int GetNumStates(int i) { return num_states_[i]; }
-  int GetCountingState() { return 0; }
   double MinusInfinity() {
     return -std::numeric_limits<double>::infinity();
   }
@@ -343,7 +347,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
       // GetCountingState().
       int num_bins = (*values)[i][GetCountingState()].size();
       //cout << num_bins << " " << num_states_.size() << endl;
-      assert(num_bins == num_states_.size());
+      assert(num_bins == GetLength());
       (*path)[i][0].resize(num_bins+1);
       for (int b = 0; b < num_bins; ++b) {
         double best_value;
@@ -461,7 +465,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
                 Configuration &configuration,
                 double *value) {
     // Decode using the Viterbi algorithm.
-    int length = num_states_.size();
+    int length = GetLength();
     vector<vector<vector<double> > > values(length);
     vector<vector<vector<int> > > path(length);
     vector<vector<vector<int> > > path_bin(length);
@@ -597,7 +601,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
   }
 
   Configuration CreateConfiguration() {
-    int length = num_states_.size();
+    int length = GetLength();
     vector<int>* sequence = new vector<int>(length, -1);
     return static_cast<Configuration>(sequence); 
   }
@@ -651,7 +655,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
     }
   }
 
- private:
+ protected:
   // Parent of each node.
   vector<int> parents_;
   // Children of each node.
