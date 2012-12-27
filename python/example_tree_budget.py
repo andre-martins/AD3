@@ -6,7 +6,7 @@ import pdb
 import ad3
 
 num_nodes = 5 #30
-max_num_states = 1 #5
+max_num_states = 2 #5
 lower_bound = 3 #5 # Minimum number of zeros.
 upper_bound = 4 #10 # Maximum number of zeros.
 
@@ -123,7 +123,7 @@ if upper_bound >= 0 or lower_bound >= 0:
   pairwise_factor_graph.set_eta_ad3(.1)
   pairwise_factor_graph.adapt_eta_ad3(True)
   pairwise_factor_graph.set_max_iterations_ad3(1000)
-  value, posteriors, additional_posteriors = pairwise_factor_graph.solve_exact_map_ad3()
+  value, posteriors, additional_posteriors = pairwise_factor_graph.solve_lp_map_ad3()
   
   # Print solution.
   t = 0

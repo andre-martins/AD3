@@ -39,6 +39,7 @@
 #include "FactorGeneralTree.h"
 #include "FactorGeneralTreeCounts.h"
 #include "FactorBinaryTree.h"
+#include "FactorBinaryTreeCounts.h"
 
 using namespace std;
 using namespace AD3;
