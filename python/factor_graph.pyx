@@ -11,10 +11,20 @@ cdef extern from "ad3/Factor.h" namespace "AD3":
         double GetLogPotential()
         void SetLogPotential(double log_potential)
         int GetId()
+        int Degree()
 
     cdef cppclass Factor:
         Factor()
+        vector[double] GetAdditionalLogPotentials()
         void SetAdditionalLogPotentials(vector[double] additional_log_potentials)
+        int Degree()
+        int GetLinkId(int i)
+        BinaryVariable *GetVariable(int i)
+        void SolveMAP(vector[double] variable_log_potentials,
+                      vector[double] additional_log_potentials,
+                      vector[double] *variable_posteriors,
+                      vector[double] *additional_posteriors,
+                      double *value)
 
 cdef extern from "ad3/MultiVariable.h" namespace "AD3":
     cdef cppclass MultiVariable:
@@ -37,6 +47,10 @@ cdef extern from "ad3/FactorGraph.h" namespace "AD3":
         int SolveExactMAPWithAD3(vector[double]* posteriors,
                                  vector[double]* additional_posteriors,
                                  double* value)
+
+        vector[double] GetDualVariables()
+        vector[double] GetLocalPrimalVariables()
+        vector[double] GetGlobalPrimalVariables()        
 
         BinaryVariable *CreateBinaryVariable()
         MultiVariable *CreateMultiVariable(int num_states)
@@ -98,6 +112,11 @@ cdef extern from "examples/summarization/FactorBinaryTree.h" namespace "AD3":
         FactorBinaryTree()
         void Initialize(vector[int] parents)
 
+cdef extern from "examples/summarization/FactorBinaryTreeCounts.h" namespace "AD3":
+    cdef cppclass FactorBinaryTreeCounts(Factor):        
+        FactorBinaryTreeCounts()
+        void Initialize(vector[int] parents)
+
 cdef extern from "examples/summarization/FactorGeneralTree.h" namespace "AD3":
     cdef cppclass FactorGeneralTree(Factor):        
         FactorGeneralTree()
@@ -129,6 +148,9 @@ cdef class PBinaryVariable:
         
     def get_id(self):
         return self.thisptr.GetId()
+        
+    def get_degree(self):
+        return self.thisptr.Degree()
 
 
 cdef class PFactor:
@@ -145,10 +167,47 @@ cdef class PFactor:
     def set_allocate(self, allocate):
         self.allocate = allocate
         
+    def get_additional_log_potentials(self):
+        cdef vector[double] additional_log_potentials
+        additional_log_potentials = self.thisptr.GetAdditionalLogPotentials()
+        p_additional_log_potentials = []
+        cdef size_t i
+        for i in xrange(additional_log_potentials.size()):
+            p_additional_log_potentials.append(additional_log_potentials[i])
+        return p_additional_log_potentials
+        
     def set_additional_log_potentials(self, vector[double] additional_log_potentials):
         self.thisptr.SetAdditionalLogPotentials(additional_log_potentials)
         
+    def get_degree(self):
+        return self.thisptr.Degree()
         
+    def get_link_id(self, int i):
+        return self.thisptr.GetLinkId(i)
+        
+    def get_variable(self, int i):
+        cdef BinaryVariable *variable = self.thisptr.GetVariable(i)
+        pvariable = PBinaryVariable(allocate=False)
+        pvariable.thisptr = variable
+        return pvariable
+        
+    def solve_map(self, vector[double] variable_log_potentials,
+                  vector[double] additional_log_potentials):
+        cdef vector[double] posteriors
+        cdef vector[double] additional_posteriors
+        cdef double value
+        self.thisptr.SolveMAP(variable_log_potentials, additional_log_potentials,
+                              &posteriors, &additional_posteriors,
+                              &value)
+        p_posteriors, p_additional_posteriors = [], []
+        cdef size_t i
+        for i in range(posteriors.size()):
+            p_posteriors.append(posteriors[i])
+        for i in range(additional_posteriors.size()):
+            p_additional_posteriors.append(additional_posteriors[i])
+            
+        return value, p_posteriors, p_additional_posteriors
+                
 cdef class PFactorSequence(PFactor):
     def __cinit__(self, allocate=True):
         self.allocate = allocate
@@ -210,6 +269,20 @@ cdef class PFactorBinaryTree(PFactor):
         (<FactorBinaryTree*>self.thisptr).Initialize(parents)
 
 
+cdef class PFactorBinaryTreeCounts(PFactor):
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+           self.thisptr = new FactorBinaryTreeCounts()
+
+    def __dealloc__(self):
+        if self.allocate:
+            del self.thisptr
+        
+    def initialize(self, vector[int] parents):
+        (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents)
+        
+        
 cdef class PFactorGeneralTree(PFactor):
     def __cinit__(self, allocate=True):
         self.allocate = allocate
@@ -384,5 +457,25 @@ cdef class PFactorGraph:
             p_additional_posteriors.append(additional_posteriors[i])
 
         return value, p_posteriors, p_additional_posteriors
+        
+    def get_dual_variables(self):
+        cdef vector[double] dual_variables = self.thisptr.GetDualVariables()
+        p_dual_variables = []
+        for i in xrange(dual_variables.size()):
+            p_dual_variables.append(dual_variables[i])
+        return p_dual_variables
 
+    def get_local_primal_variables(self):
+        cdef vector[double] local_primal_variables = self.thisptr.GetLocalPrimalVariables()
+        p_local_primal_variables = []
+        for i in xrange(local_primal_variables.size()):
+            p_local_primal_variables.append(local_primal_variables[i])
+        return p_local_primal_variables
+
+    def get_global_primal_variables(self):
+        cdef vector[double] global_primal_variables = self.thisptr.GetGlobalPrimalVariables()
+        p_global_primal_variables = []
+        for i in xrange(global_primal_variables.size()):
+            p_global_primal_variables.append(global_primal_variables[i])
+        return p_global_primal_variables
 

@@ -293,7 +293,12 @@ class FactorGraph {
   // Get variables/factors.
   BinaryVariable *GetBinaryVariable(int i) { return variables_[i]; }
   Factor *GetFactor(int i) { return factors_[i]; }
-  
+
+  // Get primal/dual variables.
+  const vector<double> &GetDualVariables() { return lambdas_; }
+  const vector<double> &GetLocalPrimalVariables() { return maps_; }
+  const vector<double> &GetGlobalPrimalVariables() { return maps_av_; }
+
   // Check if there is any multi-variable which does not 
   // belong to any factor, and if so, assign a XOR factor
   // to the corresponding binary variables.
@@ -343,35 +348,35 @@ class FactorGraph {
   void SetEtaPSDD(double eta) { psdd_eta_ = eta; }
 
   int SolveLPMAPWithAD3(vector<double> *posteriors,
-                        vector<double> *additional_posteriors, 
+                        vector<double> *additional_posteriors,
                         double *value) {
     double upper_bound;
     return RunAD3(-1e100, posteriors, additional_posteriors, value, &upper_bound);
   }
-  
+
   int SolveExactMAPWithAD3(vector<double> *posteriors,
-                           vector<double> *additional_posteriors, 
+                           vector<double> *additional_posteriors,
                            double *value) {
     double best_lower_bound = -1e100;
     double upper_bound;
     vector<bool> branched_variables(variables_.size(), false);
     int depth = 0;
-    int status = RunBranchAndBound(0.0, 
-				                           branched_variables,
-				                           depth,
-				                           posteriors,
-				                           additional_posteriors,
-				                           value,
-				                           &best_lower_bound,
-				                           &upper_bound);
-	  if (verbosity_ > 1) {
+    int status = RunBranchAndBound(0.0,
+                                   branched_variables,
+                                   depth,
+                                   posteriors,
+                                   additional_posteriors,
+                                   value,
+                                   &best_lower_bound,
+                                   &upper_bound);
+    if (verbosity_ > 1) {
       cout << "Solution value for AD3 ILP: " << *value << endl;
     }
     return status;
   }
-  
+
   int SolveLPMAPWithPSDD(vector<double> *posteriors,
-                         vector<double> *additional_posteriors, 
+                         vector<double> *additional_posteriors,
                          double *value) {
     // Add code here for tuning the stepsize.
     double upper_bound;

@@ -5,7 +5,11 @@ import pdb
 
 import ad3
 
-num_nodes = 100
+num_nodes = 10
+lower_bound = 3 #5 # Minimum number of zeros.
+upper_bound = 6 #10 # Maximum number of zeros.
+counting_state = 1
+
 
 # Create a random tree.
 max_num_children = 5
@@ -73,6 +77,35 @@ for i in xrange(1, num_nodes):
             t += 1
     description += '\n'
     
+# If there are upper/lower bounds, add budget factors.
+if upper_bound >= 0 or lower_bound >= 0:
+    variables = []
+    for i in xrange(num_nodes):
+        variables.append(multi_variables[i].get_state(counting_state))
+    # Budget factor for upper bound.
+    negated = [False] * num_nodes
+    pairwise_factor_graph.create_factor_budget(variables, negated, upper_bound)
+    num_factors += 1
+
+    # Print factor to string.
+    description += 'BUDGET ' + str(num_nodes)
+    for i in xrange(num_nodes):
+        description += ' ' + str(1 + multi_variables[i].get_state(counting_state).get_id())
+    description += ' ' + str(upper_bound)
+    description += '\n'
+    
+    # Budget factor for lower bound.
+    negated = [True] * num_nodes
+    pairwise_factor_graph.create_factor_budget(variables, negated, num_nodes - lower_bound)
+    num_factors += 1
+
+    # Print factor to string.
+    description += 'BUDGET ' + str(num_nodes)
+    for i in xrange(num_nodes):
+        description += ' ' + str(-(1 + multi_variables[i].get_state(counting_state).get_id()))
+    description += ' ' + str(num_nodes - lower_bound)
+    description += '\n'
+    
       
 # Write factor graph to file.
 f = open('example_binary_tree_dense.fg', 'w')
@@ -129,14 +162,30 @@ for i in xrange(len(variable_log_potentials)):
     binary_variable = factor_graph.create_binary_variable()
     binary_variable.set_log_potential(variable_log_potentials[i])
     binary_variables.append(binary_variable)
-
+    
+    
 #pdb.set_trace()
-factor = ad3.PFactorBinaryTree()
-variables = binary_variables
-factor_graph.declare_factor(factor, variables, True)
-factor.initialize(parents)
-factor.set_additional_log_potentials(additional_log_potentials)
-factors.append(factor)
+
+if upper_bound >= 0 or lower_bound >= 0:
+    for i in xrange(num_nodes + 1):
+        if i < lower_bound or i > upper_bound:
+            additional_log_potentials.append(-1000.0)
+        else:
+            additional_log_potentials.append(0.0)
+    
+    factor = ad3.PFactorBinaryTreeCounts()
+    variables = binary_variables
+    factor_graph.declare_factor(factor, variables, True)
+    factor.initialize(parents)
+    factor.set_additional_log_potentials(additional_log_potentials)
+    factors.append(factor)
+else:    
+    factor = ad3.PFactorBinaryTree()
+    variables = binary_variables
+    factor_graph.declare_factor(factor, variables, True)
+    factor.initialize(parents)
+    factor.set_additional_log_potentials(additional_log_potentials)
+    factors.append(factor)
 
 # Run AD3.        
 factor_graph.set_eta_ad3(.1)
@@ -156,6 +205,6 @@ for i in xrange(num_nodes):
     t += 1
 print best_states
 
-
+#pdb.set_trace()
 
 
