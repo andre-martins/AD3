@@ -139,8 +139,8 @@ class GenericFactor : public Factor {
              additional_log_potentials,
              configuration,
              value);
-    variable_posteriors->assign(binary_variables_.size(), 0.0);
-    additional_posteriors->assign(additional_log_potentials_.size(), 0.0);
+    variable_posteriors->assign(variable_log_potentials.size(), 0.0);
+    additional_posteriors->assign(additional_log_potentials.size(), 0.0);
     UpdateMarginalsFromConfiguration(configuration,
                                      1.0,
                                      variable_posteriors,

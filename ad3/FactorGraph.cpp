@@ -841,7 +841,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
 }
 
 int FactorGraph::RunAD3(double lower_bound,
-                        vector<double> *posteriors, 
+                        vector<double> *posteriors,
                         vector<double> *additional_posteriors,
                         double *value,
                         double *upper_bound) {
