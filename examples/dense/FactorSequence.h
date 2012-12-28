@@ -241,7 +241,7 @@ class FactorSequence : public GenericFactor {
     for (int i = 0; i <= length; ++i) {
       // If i == 0, the previous state is the start symbol.
       int num_previous_states = (i > 0)? num_states_[i - 1] : 1;
-      // If i == length-1, the previous state is the final symbol.
+      // If i == length, the previous state is the final symbol.
       int num_current_states = (i < length)? num_states_[i] : 1;
       index_edges_[i].resize(num_previous_states);
       for (int j = 0; j < num_previous_states; ++j) {

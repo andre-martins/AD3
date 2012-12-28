@@ -89,7 +89,9 @@ cdef extern from "examples/summarization/FactorSequenceCompressor.h" namespace "
 cdef extern from "examples/summarization/FactorCompressionBudget.h" namespace "AD3":
     cdef cppclass FactorCompressionBudget(Factor):        
         FactorCompressionBudget()
-        void Initialize(int length, int budget)                        
+        void Initialize(int length, int budget,
+                        vector[bool] counts_for_budget,
+                        vector[int] bigram_positions)                        
 
 cdef extern from "examples/summarization/FactorBinaryTree.h" namespace "AD3":
     cdef cppclass FactorBinaryTree(Factor):        
@@ -185,8 +187,13 @@ cdef class PFactorCompressionBudget(PFactor):
         if self.allocate:
             del self.thisptr
         
-    def initialize(self, int length, int budget):
-        (<FactorCompressionBudget*>self.thisptr).Initialize(length, budget)
+    def initialize(self, int length, int budget, 
+                   pcounts_for_budget,
+                   vector[int] bigram_positions):
+        cdef vector[bool] counts_for_budget
+        for counts in pcounts_for_budget:
+            counts_for_budget.push_back(counts)
+        (<FactorCompressionBudget*>self.thisptr).Initialize(length, budget, counts_for_budget, bigram_positions)
 
 
 cdef class PFactorBinaryTree(PFactor):
