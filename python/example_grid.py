@@ -83,9 +83,9 @@ if use_sequence_factors:
             num_current_states = 1
         else:
             num_current_states = num_states
-        for k in xrange(num_states):
-            for l in xrange(num_states):
-                if i != 0 and i != grid_size:
+        for k in xrange(num_states): # CHECK: num_previous_states?
+            for l in xrange(num_states): # CHECK: num_current_states?
+                if i != 0 and i != grid_size: # CHECK: delete this if?
                     if k == l:
                         additional_log_potentials.append(alpha)
                     else:
