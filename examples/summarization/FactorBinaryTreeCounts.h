@@ -225,7 +225,7 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
   Configuration CreateConfiguration() {
     int length = GetLength();
     vector<int>* sequence = new vector<int>(length, -1);
-    return static_cast<Configuration>(sequence); 
+    return static_cast<Configuration>(sequence);
   }
 
  public:
