@@ -116,7 +116,9 @@ cdef extern from "examples/summarization/FactorBinaryTree.h" namespace "AD3":
 cdef extern from "examples/summarization/FactorBinaryTreeCounts.h" namespace "AD3":
     cdef cppclass FactorBinaryTreeCounts(Factor):        
         FactorBinaryTreeCounts()
-        void Initialize(vector[int] parents)
+        void Initialize(vector[int] parents, vector[bool] counts_for_budget)
+        void Initialize(vector[int] parents, vector[bool] counts_for_budget,
+                        vector[bool] has_count_scores)
 
 cdef extern from "examples/summarization/FactorGeneralTree.h" namespace "AD3":
     cdef cppclass FactorGeneralTree(Factor):        
@@ -280,8 +282,23 @@ cdef class PFactorBinaryTreeCounts(PFactor):
         if self.allocate:
             del self.thisptr
         
-    def initialize(self, vector[int] parents):
-        (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents)
+    def initialize(self, vector[int] parents,
+                   pcounts_for_budget,
+                   phas_count_scores=None):
+        cdef vector[bool] counts_for_budget
+        cdef vector[bool] has_count_scores
+        for counts in pcounts_for_budget:
+            counts_for_budget.push_back(counts)
+        if phas_count_scores is not None:
+            for has_count in phas_count_scores:
+                has_count_scores.push_back(has_count)
+            (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
+                                                               counts_for_budget,
+                                                               has_count_scores)
+        else:
+            (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
+                                                               counts_for_budget)
+            
         
         
 cdef class PFactorGeneralTree(PFactor):
