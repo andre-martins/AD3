@@ -191,8 +191,6 @@ class FactorCompressionBudget : public GenericFactor {
           best = l;
           best_bin = b;
           //          cout << length-1 << " " << l << " " << b << " " << best_value << " " << val << endl;
-          assert(best_value < 10000.0);
-          assert(false);
         }
       }
     }

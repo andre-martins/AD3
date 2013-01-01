@@ -5,11 +5,20 @@ import pdb
 
 import ad3
 
-num_nodes = 10
-lower_bound = 3 #5 # Minimum number of zeros.
-upper_bound = 6 #10 # Maximum number of zeros.
+num_nodes = 100
+lower_bound = 30 #5 # Minimum number of zeros.
+upper_bound = 60 #10 # Maximum number of zeros.
 counting_state = 1
 
+# Decide whether each position counts for budget.
+counts_for_budget = []
+for i in xrange(num_nodes):
+    value = np.random.uniform()
+    if value < 0.2:
+        counts_for_budget.append(False)
+    else:
+        counts_for_budget.append(True)
+print counts_for_budget
 
 # Create a random tree.
 max_num_children = 5
@@ -81,29 +90,33 @@ for i in xrange(1, num_nodes):
 if upper_bound >= 0 or lower_bound >= 0:
     variables = []
     for i in xrange(num_nodes):
-        variables.append(multi_variables[i].get_state(counting_state))
+        if counts_for_budget[i]:
+            variables.append(multi_variables[i].get_state(counting_state))
     # Budget factor for upper bound.
-    negated = [False] * num_nodes
+    negated = [False] * len(variables)
     pairwise_factor_graph.create_factor_budget(variables, negated, upper_bound)
     num_factors += 1
 
     # Print factor to string.
-    description += 'BUDGET ' + str(num_nodes)
+    num_counting_nodes = len([i for i in xrange(num_nodes) if counts_for_budget[i]])
+    description += 'BUDGET ' + str(num_counting_nodes)
     for i in xrange(num_nodes):
-        description += ' ' + str(1 + multi_variables[i].get_state(counting_state).get_id())
+        if counts_for_budget[i]:    
+            description += ' ' + str(1 + multi_variables[i].get_state(counting_state).get_id())
     description += ' ' + str(upper_bound)
     description += '\n'
     
     # Budget factor for lower bound.
-    negated = [True] * num_nodes
-    pairwise_factor_graph.create_factor_budget(variables, negated, num_nodes - lower_bound)
+    negated = [True] * len(variables)
+    pairwise_factor_graph.create_factor_budget(variables, negated, len(variables) - lower_bound)
     num_factors += 1
 
     # Print factor to string.
-    description += 'BUDGET ' + str(num_nodes)
+    description += 'BUDGET ' + str(num_counting_nodes)
     for i in xrange(num_nodes):
-        description += ' ' + str(-(1 + multi_variables[i].get_state(counting_state).get_id()))
-    description += ' ' + str(num_nodes - lower_bound)
+        if counts_for_budget[i]:    
+            description += ' ' + str(-(1 + multi_variables[i].get_state(counting_state).get_id()))
+    description += ' ' + str(num_counting_nodes - lower_bound)
     description += '\n'
     
       
@@ -176,7 +189,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     factor = ad3.PFactorBinaryTreeCounts()
     variables = binary_variables
     factor_graph.declare_factor(factor, variables, True)
-    factor.initialize(parents)
+    factor.initialize(parents, counts_for_budget)
     factor.set_additional_log_potentials(additional_log_potentials)
     factors.append(factor)
 else:    

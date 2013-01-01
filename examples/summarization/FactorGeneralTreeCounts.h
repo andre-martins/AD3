@@ -43,9 +43,11 @@ class FactorGeneralTreeCounts : public GenericFactor {
     return additional_log_potentials[index];
   }
 
-  virtual double GetCountScore(int count,
+  virtual double GetCountScore(int position,
+                               int count,
                                const vector<double> &variable_log_potentials,
                                const vector<double> &additional_log_potentials) {
+    if (!IsRoot(position)) return 0.0;
     return variable_log_potentials[offset_counts_ + count];
   }
 
@@ -68,16 +70,23 @@ class FactorGeneralTreeCounts : public GenericFactor {
     (*additional_posteriors)[index] += weight;
   }
 
-  virtual double AddCountScore(int count,
-                               double weight,
-                               vector<double> *variable_posteriors,
-                               vector<double> *additional_posteriors) {
+  virtual void AddCountScore(int position,
+                             int count,
+                             double weight,
+                             vector<double> *variable_posteriors,
+                             vector<double> *additional_posteriors) {
+    if (!IsRoot(position)) return;
     (*variable_posteriors)[offset_counts_ + count] += weight;
   }
 
   virtual int GetNumStates(int i) { return num_states_[i]; }
 
   virtual int GetCountingState() { return 0; }
+
+  bool CountsForBudget(int position, int state) {
+    if (!counts_for_budget_[position]) return false;
+    return state == GetCountingState();
+  }
 
   int GetLength() { return parents_.size(); }
 
@@ -175,12 +184,15 @@ class FactorGeneralTreeCounts : public GenericFactor {
             double best_value = MinusInfinity();
             for (int l = 0; l < GetNumStates(j); ++l) {
               int bin = b;
-              if (l == GetCountingState()) {
+              if (CountsForBudget(j, l)) {
                 if (b == 0) continue;
                 --bin;
               }
               //assert(bin < (*values)[j][l].size());
+              // TODO: add + GetCountScore(j, b) below.
               double val = (*values)[j][l][bin] +
+                GetCountScore(j, b, variable_log_potentials,
+                              additional_log_potentials) +
                 GetEdgeScore(j, l, k, variable_log_potentials,
                              additional_log_potentials);
               if (best < 0 || val > best_value) {
@@ -198,7 +210,11 @@ class FactorGeneralTreeCounts : public GenericFactor {
             //cout << "BEST_LABEL[" << t << "][" << b << "] = " << best << endl; 
             best_labels[t][b] = best;
           }
-          best_labels[t][num_bins_child] = GetCountingState();
+          if (CountsForBudget(j, GetCountingState())) {
+              best_labels[t][num_bins_child] = GetCountingState();
+          } else {
+              best_labels[t][num_bins_child] = -1;
+          }
           //cout << "BEST_LABEL[" << t << "][" << num_bins_child << "] = "
           //     <<  GetCountingState() << endl; 
         }
@@ -258,10 +274,12 @@ class FactorGeneralTreeCounts : public GenericFactor {
               int l = best_labels[t][b2];
               if (l < 0) continue;
               int bin2 = b2;
-              if (l == GetCountingState()) --bin2;
+              if (CountsForBudget(j, l)) --bin2;
               //cout << bin2 << " " << l << endl;
               assert(bin2 < (*values)[j][l].size());
               double val = (*values)[j][l][bin2] +
+                GetCountScore(j, b2, variable_log_potentials,
+                              additional_log_potentials) +
                 GetEdgeScore(j, l, k, variable_log_potentials,
                              additional_log_potentials);
               assert(b1 < best_values.size());
@@ -354,7 +372,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
         int best = -1;
         for (int l = 0; l < num_states; ++l) {
           int bin = b;
-          if (l == GetCountingState()) {
+          if (CountsForBudget(i, l)) {
             if (b == 0) continue;
             --bin;
           }
@@ -368,7 +386,11 @@ class FactorGeneralTreeCounts : public GenericFactor {
         }
         (*path)[i][0][b] = best;
       }
-      (*path)[i][0][num_bins] = GetCountingState();
+      if (CountsForBudget(i, GetCountingState())) {
+        (*path)[i][0][num_bins] = GetCountingState();
+      } else {
+        (*path)[i][0][num_bins] = -1;
+      }        
     }
   }
 
@@ -377,7 +399,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
                            const vector<vector<vector<int> > > &path_bin,
                            vector<int> *best_configuration) {
     (*best_configuration)[i] = state;
-    if (state == GetCountingState()) --bin;
+    if (CountsForBudget(i, state)) --bin;
     for (int t = 0; t < GetNumChildren(i); ++t) {
       int j = GetChild(i, t);
       int l = path[j][state][bin];
@@ -394,7 +416,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
                        double *value) {
     int num_states = GetNumStates(i);
     int k = configuration[i];
-    if (k == GetCountingState()) ++(*count);
+    if (CountsForBudget(i, k)) ++(*count);
 
     if (IsLeaf(i)) {
       *value +=
@@ -411,12 +433,17 @@ class FactorGeneralTreeCounts : public GenericFactor {
         int l = configuration[j];
         *value += GetEdgeScore(j, l, k, variable_log_potentials,
                                additional_log_potentials);
+        int child_count = 0;
         EvaluateForward(variable_log_potentials,
                         additional_log_potentials,
                         configuration,
                         j,
-                        count,
+                        &child_count,
                         value);
+        *value += GetCountScore(j, child_count,
+                                variable_log_potentials,
+                                additional_log_potentials);
+        *count += child_count;
       }
     }
   }
@@ -429,7 +456,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
                               vector<double> *additional_posteriors) {
     int num_states = GetNumStates(i);
     int k = configuration[i];
-    if (k == GetCountingState()) ++(*count);
+    if (CountsForBudget(i, k)) ++(*count);
 
     if (IsLeaf(i)) {
       AddNodePosterior(i, k, weight, 
@@ -448,12 +475,17 @@ class FactorGeneralTreeCounts : public GenericFactor {
         AddEdgePosterior(j, l, k, weight,
                          variable_posteriors,
                          additional_posteriors);
+        int child_count = 0;
         UpdateMarginalsForward(configuration,
                                weight,
                                j,
-                               count,
+                               &child_count,
                                variable_posteriors,
                                additional_posteriors);
+        AddCountScore(j, child_count, weight,
+                      variable_posteriors,
+                      additional_posteriors);
+        *count += child_count;
       }
     }
   }
@@ -482,9 +514,9 @@ class FactorGeneralTreeCounts : public GenericFactor {
       int l = path[root][0][b];
       if (l < 0) continue;
       int bin = b;
-      if (l == GetCountingState()) --bin;
+      if (CountsForBudget(root, l)) --bin;
       double val = values[root][l][bin];
-      val += GetCountScore(b, variable_log_potentials,
+      val += GetCountScore(root, b, variable_log_potentials,
                            additional_log_potentials);
       //cout << "value[" << b << "] = " << val << endl;
       if (best_state < 0 || val > best_value) {
@@ -531,7 +563,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
                     value);
 
     // Add the score corresponding to the resulting count.
-    *value += GetCountScore(count, variable_log_potentials,
+    *value += GetCountScore(GetRoot(), count, variable_log_potentials,
                             additional_log_potentials);
   }
 
@@ -554,7 +586,8 @@ class FactorGeneralTreeCounts : public GenericFactor {
                            additional_posteriors);
 
     // Add the score corresponding to the resulting count.
-    AddCountScore(count,
+    AddCountScore(GetRoot(),
+                  count,
                   weight,
                   variable_posteriors,
                   additional_posteriors);
@@ -572,11 +605,13 @@ class FactorGeneralTreeCounts : public GenericFactor {
     int b1 = 0;
     int b2 = 0;
     for (int i = 0; i < sequence1->size(); ++i) {
-      if ((*sequence1)[i] == GetCountingState()) ++b1;
-      if ((*sequence2)[i] == GetCountingState()) ++b2;
+      if (CountsForBudget(i, (*sequence1)[i])) ++b1;
+      if (CountsForBudget(i, (*sequence2)[i])) ++b2;
       if ((*sequence1)[i] == (*sequence2)[i]) ++count;
     }
-    if (b1 == b2) ++count; // TODO: Make sure counts are variables and not additional variables.
+    // TODO: Make sure counts are variables and not additional variables.
+    // TODO: This assumes there are no partial counts encoded as variables.
+    if (b1 == b2) ++count; 
     return count;
   }
 
@@ -615,8 +650,17 @@ class FactorGeneralTreeCounts : public GenericFactor {
   // properly.
   void Initialize(const vector<int> &parents,
                   const vector<int> &num_states) {
+    vector<bool> counts_for_budget(parents.size());
+    counts_for_budget.assign(parents.size(), true);
+    Initialize(parents, num_states, counts_for_budget);
+  }
+
+  void Initialize(const vector<int> &parents,
+                  const vector<int> &num_states,
+                  vector<bool> &counts_for_budget) {
     int length = parents.size();
     parents_ = parents;
+    counts_for_budget_ = counts_for_budget;    
     children_.resize(length);
     assert(parents_[0] < 0);
     for (int i = 1; i < length; ++i) {
@@ -662,6 +706,8 @@ class FactorGeneralTreeCounts : public GenericFactor {
   vector<vector<int> > children_;
   // Number of states for each position.
   vector<int> num_states_;
+  // Tells if each position contributes to the budget.
+  vector<bool> counts_for_budget_;
   // Offset of states for each position.
   vector<int> offset_states_;
   // At each position, map from edges of states to a global index which 

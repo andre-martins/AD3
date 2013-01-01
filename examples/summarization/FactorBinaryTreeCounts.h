@@ -45,11 +45,13 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
     return additional_log_potentials[index];
   }
 
-  double GetCountScore(int count,
-                      const vector<double> &variable_log_potentials,
-                      const vector<double> &additional_log_potentials) {
+  double GetCountScore(int position, 
+                       int count,
+                       const vector<double> &variable_log_potentials,
+                       const vector<double> &additional_log_potentials) {
     // TODO: allow add hard constraints here.
-    return additional_log_potentials[offset_counts_ + count];
+    if (index_counts_[position][count] < 0) return 0.0;
+    return additional_log_potentials[index_counts_[position][count]];
   }
 
   void AddNodePosterior(int position,
@@ -72,18 +74,44 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
     (*additional_posteriors)[index] += weight;
   }
 
-  double AddCountScore(int count,
-                       double weight,
-                       vector<double> *variable_posteriors,
-                       vector<double> *additional_posteriors) {
+  void AddCountScore(int position,
+                     int count,
+                     double weight,
+                     vector<double> *variable_posteriors,
+                     vector<double> *additional_posteriors) {
     // TODO: allow hard constraints here.
-    (*additional_posteriors)[offset_counts_ + count] += weight;
+    if (index_counts_[position][count] < 0) return;
+    (*additional_posteriors)[index_counts_[position][count]] += weight;
   }
 
 
   int GetNumStates(int i) { return 2; }
 
   int GetCountingState() { return 1; }
+
+  void GetAscendants(int i, const vector<int> &parents,
+                      vector<int> *ascendants) {
+    ascendants->push_back(i);
+    if (parents[i] >= 0) {
+      GetAscendants(parents[i], parents, ascendants);
+    }
+  }
+
+  void GetDescendants(int i, const vector<vector<int> > &children,
+                      vector<int> *descendants) {
+    descendants->push_back(i);
+    for (int k = 0; k < children[i].size(); ++k) {
+      GetDescendants(children[i][k], children, descendants);
+    }
+  }
+
+  int CountDescendants(int i, const vector<vector<int> > &children) {
+    int num_descendants = 1;
+    for (int k = 0; k < children[i].size(); ++k) {
+      num_descendants += CountDescendants(children[i][k], children);
+    }
+    return num_descendants;
+  }
 
  public:
   // Obtain the best configuration.
@@ -109,9 +137,9 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
       int l = path[root][0][b];
       if (l < 0) continue;
       int bin = b;
-      if (l == GetCountingState()) --bin;
+      if (CountsForBudget(root, l)) --bin;
       double val = values[root][l][bin];
-      val += GetCountScore(b, variable_log_potentials,
+      val += GetCountScore(root, b, variable_log_potentials,
                            additional_log_potentials);
       //cout << "value[" << b << "] = " << val << endl;
       if (best_state < 0 || val > best_value) {
@@ -158,7 +186,7 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
                     value);
 
     // Add the score corresponding to the resulting count.
-    *value += GetCountScore(count, variable_log_potentials,
+    *value += GetCountScore(GetRoot(), count, variable_log_potentials,
                             additional_log_potentials);
   }
 
@@ -181,7 +209,8 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
                            additional_posteriors);
 
     // Add the score corresponding to the resulting count.
-    AddCountScore(count,
+    AddCountScore(GetRoot(),
+                  count,
                   weight,
                   variable_posteriors,
                   additional_posteriors);
@@ -235,9 +264,20 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
   // in the tree. No start/stop positions are used.
   // Note: the variables and the the additional log-potentials must be ordered
   // properly.
-  void Initialize(const vector<int> &parents) {
+  void Initialize(const vector<int> &parents,
+                  vector<bool> &counts_for_budget) {
+    vector<bool> has_count_scores(parents.size());
+    has_count_scores.assign(parents.size(), false);
+    has_count_scores[GetRoot()] = true;
+    Initialize(parents, counts_for_budget, has_count_scores);
+  }
+
+  void Initialize(const vector<int> &parents,
+                  vector<bool> &counts_for_budget,
+                  vector<bool> &has_count_scores) {
     int length = parents.size();
     parents_ = parents;
+    counts_for_budget_ = counts_for_budget;
     children_.resize(length);
     assert(parents_[0] < 0);
     for (int i = 1; i < length; ++i) {
@@ -265,9 +305,27 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
       }
     }
 
-    // Set offset_counts right after all the edge additionalvariables.
-    offset_counts_ = index;
+    offset_counts_ = -1; // Not used.
+    // Set index_counts right after all the edge additional variables.
+    index_counts_.resize(length);
+    for (int i = 0; i < length; ++i) {
+      int num_descendants = CountDescendants(i, children_);
+      //cout << num_descendants << " " << i << " " << has_count_scores[i] << endl;
+      index_counts_[i].resize(num_descendants+1);
+      for (int b = 0; b <= num_descendants; ++b) {
+        if (has_count_scores[i]) {
+          index_counts_[i][b] = index;
+          ++index;
+        } else {
+          index_counts_[i][b] = -1;
+        }
+      }
+    }
   }
+
+ protected:
+  // Indices of counts.
+  vector<vector<int> > index_counts_;
 };
 
 } // namespace AD3
