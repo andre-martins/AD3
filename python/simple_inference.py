@@ -39,7 +39,7 @@ def simple_grid(unaries, pairwise, verbose=1):
     return marginals, edge_marginals, value
 
 
-def general_graph(unaries, edges, edge_weights, verbose, n_iterations=1000):
+def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000):
     if unaries.shape[1] != edge_weights.shape[1]:
         raise ValueError("incompatible shapes of unaries"
                          " and edge_weights.")
