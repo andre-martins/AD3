@@ -145,7 +145,8 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
       if (best_state < 0 || val > best_value) {
         best_value = val;
         best_state = l;
-        best_bin = b;
+        best_bin = bin;
+        //best_bin = b;
       }
     }
 

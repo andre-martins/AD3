@@ -149,8 +149,13 @@ class FactorGeneralTreeCounts : public GenericFactor {
       // Increment the number of bins to account for the current node.
       ++num_bins;
 
-      //cout << "Node " << i <<  " has " << num_bins << " descendants" << endl;
+#if 0
+      if (num_bins > GetMaxNumBins()) {
+        num_bins = GetMaxNumBins();
+      }
+#endif
 
+      //cout << "Node " << i <<  " has " << num_bins << " descendants" << endl;
 
       // Initialize values to the node scores.
       for (int k = 0; k < num_states; ++k) {
@@ -246,6 +251,17 @@ class FactorGeneralTreeCounts : public GenericFactor {
           // NOTE: below it could be any other state and not necessarily
           // GetCountingState().
           int num_bins_child = (*values)[j][GetCountingState()].size();
+
+
+#if 0
+          /////
+          int num_bins_accum = 1+num_bins_total+num_bins_child;
+          if (num_bins_accum > GetMaxNumBins()) {
+            num_bins_accum = GetMaxNumBins();
+          }
+          /////
+#endif
+
           vector<double> best_values_partial(1+num_bins_total+num_bins_child,
                                              MinusInfinity());
           vector<vector<int> >
@@ -352,7 +368,12 @@ class FactorGeneralTreeCounts : public GenericFactor {
               // TODO: maybe below put b2-1 whenever the best label is the
               // zero-label?
               assert(b < (*path_bin)[j][k].size());
-              (*path_bin)[j][k][b] = b2;
+
+              // NOTE: This might be problematic when using MaxNumBins. 
+              int bin2 = b2;
+              if (CountsForBudget(j, best_labels[t][b2])) --bin2;
+              (*path_bin)[j][k][b] = bin2;
+              // (*path_bin)[j][k][b] = b2;
             }
           }
         }
@@ -399,7 +420,8 @@ class FactorGeneralTreeCounts : public GenericFactor {
                            const vector<vector<vector<int> > > &path_bin,
                            vector<int> *best_configuration) {
     (*best_configuration)[i] = state;
-    if (CountsForBudget(i, state)) --bin;
+    //if (CountsForBudget(i, state)) --bin; 
+
     for (int t = 0; t < GetNumChildren(i); ++t) {
       int j = GetChild(i, t);
       int l = path[j][state][bin];
@@ -514,7 +536,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
       int l = path[root][0][b];
       if (l < 0) continue;
       int bin = b;
-      if (CountsForBudget(root, l)) --bin;
+      if (CountsForBudget(root, l)) --bin; 
       double val = values[root][l][bin];
       val += GetCountScore(root, b, variable_log_potentials,
                            additional_log_potentials);
@@ -522,7 +544,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
       if (best_state < 0 || val > best_value) {
         best_value = val;
         best_state = l;
-        best_bin = b;
+        best_bin = bin;
       }
     }
 
