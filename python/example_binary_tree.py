@@ -5,6 +5,8 @@ import pdb
 
 import ad3
 
+#np.random.seed(141277)
+
 num_nodes = 100
 lower_bound = 30 #5 # Minimum number of zeros.
 upper_bound = 60 #10 # Maximum number of zeros.
