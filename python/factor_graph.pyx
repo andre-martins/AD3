@@ -118,6 +118,8 @@ cdef extern from "examples/summarization/FactorBinaryTreeCounts.h" namespace "AD
         void Initialize(vector[int] parents, vector[bool] counts_for_budget)
         void Initialize(vector[int] parents, vector[bool] counts_for_budget,
                         vector[bool] has_count_scores)
+        void Initialize(vector[int] parents, vector[bool] counts_for_budget,
+                        vector[bool] has_count_scores, int max_num_bins)
 
 cdef extern from "examples/summarization/FactorGeneralTree.h" namespace "AD3":
     cdef cppclass FactorGeneralTree(Factor):        
@@ -283,7 +285,8 @@ cdef class PFactorBinaryTreeCounts(PFactor):
         
     def initialize(self, vector[int] parents,
                    pcounts_for_budget,
-                   phas_count_scores=None):
+                   phas_count_scores=None,
+                   max_num_bins=None):
         cdef vector[bool] counts_for_budget
         cdef vector[bool] has_count_scores
         for counts in pcounts_for_budget:
@@ -291,9 +294,15 @@ cdef class PFactorBinaryTreeCounts(PFactor):
         if phas_count_scores is not None:
             for has_count in phas_count_scores:
                 has_count_scores.push_back(has_count)
-            (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
-                                                               counts_for_budget,
-                                                               has_count_scores)
+            if max_num_bins is not None:
+                (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
+                                                                   counts_for_budget,
+                                                                   has_count_scores,
+                                                                   max_num_bins)
+            else:
+                (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
+                                                                   counts_for_budget,
+                                                                   has_count_scores)
         else:
             (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
                                                                counts_for_budget)
