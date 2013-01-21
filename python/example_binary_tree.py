@@ -9,7 +9,9 @@ import ad3
 
 num_nodes = 100
 lower_bound = 30 #5 # Minimum number of zeros.
-upper_bound = 60 #10 # Maximum number of zeros.
+#upper_bound = 6 #10 # Maximum number of zeros.
+upper_bound = num_nodes
+max_num_bins = lower_bound+2
 counting_state = 1
 
 # Decide whether each position counts for budget.
@@ -191,7 +193,9 @@ if upper_bound >= 0 or lower_bound >= 0:
     factor = ad3.PFactorBinaryTreeCounts()
     variables = binary_variables
     factor_graph.declare_factor(factor, variables, True)
-    factor.initialize(parents, counts_for_budget)
+    has_count_scores = [False] * len(parents)
+    has_count_scores[0] = True
+    factor.initialize(parents, counts_for_budget, has_count_scores, max_num_bins)
     factor.set_additional_log_potentials(additional_log_potentials)
     factors.append(factor)
 else:    

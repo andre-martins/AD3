@@ -113,6 +113,8 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
     return num_descendants;
   }
 
+  int GetMaxNumBins() { return max_num_bins_; }
+
  public:
   // Obtain the best configuration.
   void Maximize(const vector<double> &variable_log_potentials,
@@ -276,7 +278,16 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
   void Initialize(const vector<int> &parents,
                   vector<bool> &counts_for_budget,
                   vector<bool> &has_count_scores) {
+    Initialize(parents, counts_for_budget, has_count_scores,
+               parents.size() + 2);
+  }
+
+  void Initialize(const vector<int> &parents,
+                  vector<bool> &counts_for_budget,
+                  vector<bool> &has_count_scores,
+                  int max_num_bins) {
     int length = parents.size();
+    max_num_bins_ = max_num_bins;
     parents_ = parents;
     counts_for_budget_ = counts_for_budget;
     children_.resize(length);
@@ -327,6 +338,8 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
  protected:
   // Indices of counts.
   vector<vector<int> > index_counts_;
+  // Maximum number of bins.
+  int max_num_bins_;
 };
 
 } // namespace AD3

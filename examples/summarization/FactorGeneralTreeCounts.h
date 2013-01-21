@@ -22,6 +22,8 @@
 #include "ad3/GenericFactor.h"
 #include <limits>
 
+#define USE_MAX_BINS
+
 namespace AD3 {
 
 class FactorGeneralTreeCounts : public GenericFactor {
@@ -82,6 +84,8 @@ class FactorGeneralTreeCounts : public GenericFactor {
   virtual int GetNumStates(int i) { return num_states_[i]; }
 
   virtual int GetCountingState() { return 0; }
+
+  virtual int GetMaxNumBins() { return GetLength() + 1; }
 
   bool CountsForBudget(int position, int state) {
     if (!counts_for_budget_[position]) return false;
@@ -149,7 +153,7 @@ class FactorGeneralTreeCounts : public GenericFactor {
       // Increment the number of bins to account for the current node.
       ++num_bins;
 
-#if 0
+#ifdef USE_MAX_BINS
       if (num_bins > GetMaxNumBins()) {
         num_bins = GetMaxNumBins();
       }
@@ -252,22 +256,19 @@ class FactorGeneralTreeCounts : public GenericFactor {
           // GetCountingState().
           int num_bins_child = (*values)[j][GetCountingState()].size();
 
-
-#if 0
-          /////
+          // This will be the number of bins after merging with the
+          // new child. It is truncated with the maximum number of bins.
           int num_bins_accum = 1+num_bins_total+num_bins_child;
-          if (num_bins_accum > GetMaxNumBins()) {
-            num_bins_accum = GetMaxNumBins();
-          }
-          /////
-#endif
+          //if (num_bins_accum > GetMaxNumBins()) {
+          //  num_bins_accum = GetMaxNumBins();
+          //}
 
-          vector<double> best_values_partial(1+num_bins_total+num_bins_child,
+          vector<double> best_values_partial(num_bins_accum,
                                              MinusInfinity());
           vector<vector<int> >
-            best_bin_sequences_partial(1+num_bins_total+num_bins_child);
+            best_bin_sequences_partial(num_bins_accum);
 
-          for (int b = 0; b < 1+num_bins_total+num_bins_child; ++b) {
+          for (int b = 0; b < num_bins_accum; ++b) {
             int bmin = b - num_bins_total;
             if (bmin < 0) bmin = 0;
             int bmax = b;
@@ -319,9 +320,37 @@ class FactorGeneralTreeCounts : public GenericFactor {
             }
           }
 
+#ifdef USE_MAX_BINS
+          // Now if we're exceeding the max number of bins, just save the best 
+          // configuration in the last possible bin.
+          if (num_bins_accum > GetMaxNumBins()) {
+            double best_value = MinusInfinity();
+            int best_bin = -1;
+            for (int b = GetMaxNumBins()-1; b < num_bins_accum; ++b) {
+              if (best_bin < 0 || best_values_partial[b] > best_value) {
+                best_bin = b;
+                best_value = best_values_partial[b];
+              }
+            }
+            assert(best_bin >= 0);
+            best_values_partial[GetMaxNumBins()-1] = best_value;
+            best_bin_sequences_partial[GetMaxNumBins()-1] =
+              best_bin_sequences_partial[best_bin];
+            best_values_partial.resize(GetMaxNumBins());
+            best_bin_sequences_partial.resize(GetMaxNumBins());
+            num_bins_accum = GetMaxNumBins();
+          }
+#endif
+
           num_bins_total += num_bins_child;
+
+#ifdef USE_MAX_BINS
+          if (num_bins_total >= GetMaxNumBins()) {
+            num_bins_total = GetMaxNumBins() - 1;
+          }
+#endif
           //cout << "num_bins_total = " << num_bins_total << endl;
-          for (int b = 0; b < num_bins_total + 1; ++b) {
+          for (int b = 0; b < num_bins_accum; ++b) {
             best_values[b] = best_values_partial[b];
             best_bin_sequences[b] = best_bin_sequences_partial[b];
           }
@@ -386,7 +415,9 @@ class FactorGeneralTreeCounts : public GenericFactor {
       // GetCountingState().
       int num_bins = (*values)[i][GetCountingState()].size();
       //cout << num_bins << " " << num_states_.size() << endl;
+#ifndef USE_MAX_BINS
       assert(num_bins == GetLength());
+#endif
       (*path)[i][0].resize(num_bins+1);
       for (int b = 0; b < num_bins; ++b) {
         double best_value;
