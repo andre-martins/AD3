@@ -133,7 +133,7 @@ void GenericFactor::InvertAfterRemoval(const vector<Configuration> &active_set,
 
   ++removed_index; // Index in A has an offset of 1.
   double invs = inverse_A[removed_index * size_A + removed_index];
-  assert(!NEARLY_ZERO_TOL(invs, 1e-12));
+  assert(!NEARLY_ZERO_TOL(invs, 1e-12)); // TODO: Make this tolerance depend on the scale of the data.
   double s = 1.0 / invs;
   vector<double> d(size_A - 1, 0.0);
   int k = 0;

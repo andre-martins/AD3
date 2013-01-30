@@ -63,6 +63,16 @@ extern int project_onto_budget_constraint_cached(double* x,
                                                  int d,
                                                  double budget, 
                                                  vector<pair<double,int> >& y);
+
+extern int project_onto_knapsack_constraint(double* x, double* costs, int d,
+                                            double budget);
+
+extern int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
+                                       const vector<double> &upper_bounds,
+                                       const vector<double> &weights,
+                                       double total_weight,
+                                       vector<double> *solution);
+
                                                  
 extern void StringSplit(const string &str,
 			const string &delim,
