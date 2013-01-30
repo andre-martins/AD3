@@ -18,6 +18,7 @@
 
 #include "Utils.h"
 #include <limits>
+#include <assert.h>
 
 namespace AD3 {
 
@@ -294,6 +295,164 @@ int project_onto_budget_constraint(double* x, int d, double budget) {
       x[j] = 1.0;
     } else {
       x[j] += tau;
+    }
+  }
+
+  return 0;
+}
+
+int project_onto_knapsack_constraint(double* x, double* costs, int d,
+                                     double budget) {
+  // minimize ||x - x0||^2 s.t. w'*x = budget, x in [0,1]^d.
+  //
+  // By defining y := (x - x0)./w, this becomes:
+  //
+  // min ||w.*y||^2
+  // s.t.
+  // (w.^2)'*y = b - w'*x0
+  // -x0./w <= y <= 1 - x0./w
+  //
+  // This maps to the canonical problem (2) described in:
+  //
+  // Pardalos and Kovoor (1990). An Algorithm for a Singly Constrained
+  // Class of Quadratic Problems subject to Upper and Lower Bounds.
+  // Mathematical Programming 46 (1990) 321-328.
+  //
+  // with parameters:
+  //
+  // A_i = -x0i/w_i
+  // B_i = (1-x0i)/w_i
+  // C_i = w_i^2
+  // D = b - w'*x0
+  // x_i = x0i + w_i*y_i
+
+  vector<double> lower_bounds(d); // A.
+  vector<double> upper_bounds(d); // B.
+  vector<double> weights(d); // C.
+  double total_weight; // D.
+  vector<double> solution(d);
+
+  total_weight = budget;
+  for (int i = 0; i < d; ++i) {
+    lower_bounds[i] = -x[i] / costs[i];
+    upper_bounds[i] = (1-x[i]) / costs[i];
+    weights[i] = costs[i] * costs[i];
+    total_weight -= costs[i] * x[i];
+  }
+
+  solve_canonical_qp_knapsack(lower_bounds, upper_bounds, weights, total_weight,
+                              &solution);
+
+  for (int i = 0; i < d; ++i) {
+    x[i] += costs[i] * solution[i];
+  }
+
+  return 0;
+}
+
+int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
+                                const vector<double> &upper_bounds,
+                                const vector<double> &weights,
+                                double total_weight,
+                                vector<double> *solution) {
+  // Set dimension.
+  int d = weights.size();
+
+  // Sort lower and upper bounds and keep the sorted indices.
+  vector<pair<double,int> > sorted_lower(d);
+  vector<pair<double,int> > sorted_upper(d);
+  for (int i = 0; i < d; ++i) {
+    sorted_lower[i].first = lower_bounds[i];
+    sorted_upper[i].first = upper_bounds[i];
+    sorted_lower[i].second = i;
+    sorted_upper[i].second = i;
+  }
+  sort(sorted_lower.begin(), sorted_lower.end());
+  sort(sorted_upper.begin(), sorted_upper.end());
+
+  double slackweight = 0.0;
+  double tightsum = 0.0;
+  for (int i = 0; i < d; ++i) {
+    tightsum += lower_bounds[i] * weights[i];
+  }
+
+  int k = 0;
+  int l = 0;
+  int level = 0;
+  double left, right = -std::numeric_limits<double>::infinity();
+  bool found = false;
+  double tau;
+  int index_a, index_b;
+  double val_a, val_b;
+
+  while (k < d || l < d) {
+    // Compute the estimate for tau.
+    if (level != 0) {
+      tau = (total_weight - tightsum) / slackweight;
+    }
+
+    if (k < d) {
+      index_a = sorted_lower[k].second;
+      val_a = sorted_lower[k].first;
+    } else {
+      val_a = std::numeric_limits<double>::infinity();
+    }
+
+    if (l < d) {
+      index_b = sorted_upper[k].second;
+      val_b = sorted_upper[k].first;
+    } else {
+      val_b = std::numeric_limits<double>::infinity();
+    }
+
+    left = right;
+    if (val_a < val_b) {
+      // Next value comes from the a-list.
+      right = val_a;
+    } else {
+      // Next value comes from the b-list.
+      left = right;
+      right = val_b;
+    }
+
+    assert(level == 0 || tau >= left);
+    if ((level == 0 && total_weight == tightsum) ||
+        (level != 0 && tau >= left && tau <= right)) {
+      // Found the right split-point!
+      found = true;
+      break;
+    }
+
+    if (val_a < val_b) {
+      tightsum -= lower_bounds[index_a] * weights[index_a];
+      slackweight += weights[index_a];
+      ++level;
+      ++k;
+    } else {
+      tightsum += upper_bounds[index_b] * weights[index_b];
+      slackweight -= weights[index_b];
+      --level;
+      ++l;
+    }
+  }
+
+  for (int i = 0; i < d; ++i) {
+    (*solution)[i] = 0.0;
+  }
+  if (!found) {
+    left = right;
+    right = std::numeric_limits<double>::infinity();
+  }
+
+  for (int i = 0; i < d; ++i) {
+    if (lower_bounds[i] >= right) {
+      (*solution)[i] = lower_bounds[i];
+    } else if (upper_bounds[i] <= left) {
+      (*solution)[i] = upper_bounds[i];
+    } else {
+      assert(found);
+      assert(level != 0);
+      (*solution)[i] = tau;
     }
   }
 
