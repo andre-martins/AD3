@@ -791,6 +791,136 @@ void FactorBUDGET::SolveQP(const vector<double> &variable_log_potentials,
   }
 }
 
+// Compute the MAP (local subproblem in the projected subgradient algorithm).
+void FactorKNAPSACK::SolveMAP(const vector<double> &variable_log_potentials,
+                        const vector<double> &additional_log_potentials,
+                        vector<double> *variable_posteriors,
+                        vector<double> *additional_posteriors,
+                        double *value) {
+  cout << "Solve LP" << endl;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    cout << variable_log_potentials[f] << " ";
+  }
+  cout << endl;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    cout << costs_[f] << " ";
+  }
+  cout << endl;
+
+  variable_posteriors->resize(variable_log_potentials.size());
+
+  // Create a local copy of the log potentials.
+  vector<double> log_potentials(variable_log_potentials);
+
+  double valaux;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) log_potentials[f] = -log_potentials[f];
+  }
+
+  *value = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) *value -= log_potentials[f];
+  }
+
+  double total_cost = 0.0;
+  double sum = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    valaux = log_potentials[f];
+    if (valaux < 0.0) {
+      (*variable_posteriors)[f] = negated_[f]? 1.0 : 0.0;
+    } else {
+      sum += valaux;
+      (*variable_posteriors)[f] = negated_[f]? 0.0 : 1.0;
+    }
+    total_cost += GetCost(f);
+  }
+
+  if (total_cost > GetBudget()) {
+    vector<pair<double,int> > scores(binary_variables_.size());
+    for (int f = 0; f < binary_variables_.size(); ++f) {
+      scores[f].first = -log_potentials[f] / GetCost(f);
+      scores[f].second = f;
+    }
+    sort(scores.begin(), scores.end());
+    total_cost = 0.0;
+    sum = 0.0;
+    int num_active = 0;
+    for (int k = 0; k < binary_variables_.size(); ++k) {
+      int f = scores[k].second;
+      valaux = log_potentials[f];
+      if (valaux < 0.0) break;
+      if (total_cost + GetCost(f) > GetBudget()) {
+        double posterior = (GetBudget() - total_cost) / GetCost(f);
+        (*variable_posteriors)[f] = negated_[f]?
+          1.0 - posterior : posterior;
+        sum += valaux * posterior;
+        total_cost = GetBudget();
+        ++num_active;
+        break;
+      }
+
+      (*variable_posteriors)[f] = negated_[f]? 0.0 : 1.0;
+      sum += valaux;
+      total_cost += GetCost(f);
+      ++num_active;
+    }
+    for (int k = num_active; k < binary_variables_.size(); ++k) {
+      int f = scores[k].second;
+      (*variable_posteriors)[f] = negated_[f]? 1.0 : 0.0;
+    }    
+  }
+  
+  *value += sum;  
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    cout << (*variable_posteriors)[f] << " ";
+  }
+  cout << endl;
+  cout << *value << endl;
+}
+
+// Solve the QP (local subproblem in the AD3 algorithm).
+void FactorKNAPSACK::SolveQP(const vector<double> &variable_log_potentials,
+                       const vector<double> &additional_log_potentials,
+                       vector<double> *variable_posteriors,
+                       vector<double> *additional_posteriors) {
+  cout << "Solve QP" << endl;
+  variable_posteriors->resize(variable_log_potentials.size());
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    (*variable_posteriors)[f] = negated_[f]? 
+        1 - variable_log_potentials[f] : variable_log_potentials[f];
+    if ((*variable_posteriors)[f] < 0.0) {
+      (*variable_posteriors)[f] = 0.0;
+    } else if ((*variable_posteriors)[f] > 1.0) {
+      (*variable_posteriors)[f] = 1.0;
+    }
+  }
+
+  double s = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    s += GetCost(f) * (*variable_posteriors)[f];
+  }
+
+  if (s > static_cast<double>(GetBudget())) {
+    for (int f = 0; f < binary_variables_.size(); ++f) {
+      (*variable_posteriors)[f] = negated_[f]? 
+          1 - variable_log_potentials[f] : variable_log_potentials[f];
+    }
+
+    project_onto_knapsack_constraint(&(*variable_posteriors)[0],
+                                     &costs_[0],
+                                     binary_variables_.size(),
+                                     static_cast<double>(GetBudget())); 
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) {
+      (*variable_posteriors)[f] = 1 - (*variable_posteriors)[f];
+    }
+  }
+}
+
 // Add evidence information to the factor.
 // Returns 0 if nothing changed.
 // Returns 1 if new evidence was set or new links were disabled,

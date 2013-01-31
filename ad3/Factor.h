@@ -37,6 +37,7 @@ struct FactorTypes {
     FACTOR_OROUT,
     FACTOR_ATMOSTONE,
     FACTOR_BUDGET,
+    FACTOR_KNAPSACK,
     FACTOR_MULTI_DENSE
   };
 };
@@ -432,6 +433,57 @@ public:
   
   // Cached copy of the last sort.
   vector<pair<double,int> > last_sort_;
+};
+
+// KNAPSACK factor. The weighted sum of the variables is constrained
+// to be less than or equal to the budget.
+class FactorKNAPSACK : public Factor {
+public:
+  int type() { return FactorTypes::FACTOR_KNAPSACK; }
+
+  // Print as a string.
+  void Print(ostream& stream) {
+    stream << "KNAPSACK";
+    Factor::Print(stream);
+    for (int i = 0; i < Degree(); ++i) {
+      stream << " " << GetCost(i) << endl;
+    }
+    stream << " " << GetBudget() << endl;
+  }
+
+  // Get/set costs.
+  void InitCosts() { costs_.assign(Degree(), 0.0); }
+  double GetCost(int i) { return costs_[i]; }
+  void SetCost(int i, double cost) { costs_[i] = cost; }
+
+  // Get/set budget value.
+  double GetBudget() { return budget_; }
+  void SetBudget(double budget) { budget_ = budget; }
+
+  // Add evidence information to the factor.
+  int AddEvidence(vector<bool> *active_links,
+                  vector<int> *evidence,
+                  vector<int> *additional_evidence) { assert(false); }
+
+  // Compute the MAP (local subproblem in the projected subgradient algorithm).
+  void SolveMAP(const vector<double> &variable_log_potentials,
+                const vector<double> &additional_log_potentials,
+                vector<double> *variable_posteriors,
+                vector<double> *additional_posteriors,
+                double *value);
+
+  // Solve the QP (local subproblem in the AD3 algorithm).
+  void SolveQP(const vector<double> &variable_log_potentials,
+               const vector<double> &additional_log_potentials,
+               vector<double> *variable_posteriors,
+               vector<double> *additional_posteriors);
+
+ private:
+  // Budget value.
+  double budget_;
+  
+  // Costs of each variable.
+  vector<double> costs_;
 };
 
 // PAIR factor. It connects a pair of binary variables, 
