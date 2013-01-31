@@ -20,6 +20,10 @@
 #include <limits>
 #include <assert.h>
 
+//#include <iostream>
+//using namespace std;
+
+
 namespace AD3 {
 
 int diff_ms(timeval t1, timeval t2) {
@@ -332,6 +336,20 @@ int project_onto_knapsack_constraint(double* x, double* costs, int d,
   double total_weight; // D.
   vector<double> solution(d);
 
+  /*
+  cout << "x0 = [";
+  for (int i = 0; i < d; ++i) {
+    cout << x[i] << ",";
+  }
+  cout << "]" << endl;
+  cout << "costs = [";
+  for (int i = 0; i < d; ++i) {
+    cout << costs[i] << ",";
+  }
+  cout << "]" << endl;
+  cout << "budget = " << budget << endl;
+  */
+
   total_weight = budget;
   for (int i = 0; i < d; ++i) {
     lower_bounds[i] = -x[i] / costs[i];
@@ -346,6 +364,14 @@ int project_onto_knapsack_constraint(double* x, double* costs, int d,
   for (int i = 0; i < d; ++i) {
     x[i] += costs[i] * solution[i];
   }
+
+  /*
+  cout << "x = [";
+  for (int i = 0; i < d; ++i) {
+    cout << x[i] << ",";
+  }
+  cout << "]" << endl;
+  */
 
   return 0;
 }
@@ -389,6 +415,7 @@ int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
     // Compute the estimate for tau.
     if (level != 0) {
       tau = (total_weight - tightsum) / slackweight;
+      // cout << "tau = " << tau << endl;
     }
 
     if (k < d) {
@@ -399,8 +426,8 @@ int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
     }
 
     if (l < d) {
-      index_b = sorted_upper[k].second;
-      val_b = sorted_upper[k].first;
+      index_b = sorted_upper[l].second;
+      val_b = sorted_upper[l].first;
     } else {
       val_b = std::numeric_limits<double>::infinity();
     }
@@ -423,6 +450,9 @@ int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
       break;
     }
 
+    //cout << "val_a = " << val_a << endl;
+    //cout << "val_b = " << val_b << endl;
+
     if (val_a < val_b) {
       tightsum -= lower_bounds[index_a] * weights[index_a];
       slackweight += weights[index_a];
@@ -443,6 +473,9 @@ int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
     left = right;
     right = std::numeric_limits<double>::infinity();
   }
+
+  //cout << "left = " << left << endl;
+  //cout << "right = " << right << endl;
 
   for (int i = 0; i < d; ++i) {
     if (lower_bounds[i] >= right) {

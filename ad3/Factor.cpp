@@ -797,6 +797,7 @@ void FactorKNAPSACK::SolveMAP(const vector<double> &variable_log_potentials,
                         vector<double> *variable_posteriors,
                         vector<double> *additional_posteriors,
                         double *value) {
+  /*
   cout << "Solve LP" << endl;
   for (int f = 0; f < binary_variables_.size(); ++f) {
     cout << variable_log_potentials[f] << " ";
@@ -806,6 +807,7 @@ void FactorKNAPSACK::SolveMAP(const vector<double> &variable_log_potentials,
     cout << costs_[f] << " ";
   }
   cout << endl;
+  */
 
   variable_posteriors->resize(variable_log_potentials.size());
 
@@ -867,16 +869,16 @@ void FactorKNAPSACK::SolveMAP(const vector<double> &variable_log_potentials,
     for (int k = num_active; k < binary_variables_.size(); ++k) {
       int f = scores[k].second;
       (*variable_posteriors)[f] = negated_[f]? 1.0 : 0.0;
-    }    
+    }
   }
-  
-  *value += sum;  
 
-  for (int f = 0; f < binary_variables_.size(); ++f) {
-    cout << (*variable_posteriors)[f] << " ";
-  }
-  cout << endl;
-  cout << *value << endl;
+  *value += sum;
+
+  //for (int f = 0; f < binary_variables_.size(); ++f) {
+  //  cout << (*variable_posteriors)[f] << " ";
+  //}
+  //cout << endl;
+  //cout << *value << endl;
 }
 
 // Solve the QP (local subproblem in the AD3 algorithm).
@@ -884,11 +886,11 @@ void FactorKNAPSACK::SolveQP(const vector<double> &variable_log_potentials,
                        const vector<double> &additional_log_potentials,
                        vector<double> *variable_posteriors,
                        vector<double> *additional_posteriors) {
-  cout << "Solve QP" << endl;
+  //cout << "Solve QP" << endl;
   variable_posteriors->resize(variable_log_potentials.size());
 
   for (int f = 0; f < binary_variables_.size(); ++f) {
-    (*variable_posteriors)[f] = negated_[f]? 
+    (*variable_posteriors)[f] = negated_[f]?
         1 - variable_log_potentials[f] : variable_log_potentials[f];
     if ((*variable_posteriors)[f] < 0.0) {
       (*variable_posteriors)[f] = 0.0;
