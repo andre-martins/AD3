@@ -250,6 +250,30 @@ class FactorGraph {
     return factor;
   }
 
+  // Create a new KNAPSACK factor.
+  Factor *CreateFactorKNAPSACK(const vector<BinaryVariable*> &variables,
+                               const vector<double> &costs,
+                               double budget,
+                               bool owned_by_graph = true) {
+    vector<bool> negated;
+    return CreateFactorKNAPSACK(variables, negated, costs, budget,
+                                owned_by_graph);
+  }
+  Factor *CreateFactorKNAPSACK(const vector<BinaryVariable*> &variables,
+                               const vector<bool> &negated,
+                               const vector<double> &costs,
+                               double budget,
+                               bool owned_by_graph = true) {
+    Factor *factor = new FactorKNAPSACK;
+    DeclareFactor(factor, variables, negated, owned_by_graph);
+    static_cast<FactorKNAPSACK*>(factor)->InitCosts();
+    for (int i = 0; i < costs.size(); ++i) {
+      static_cast<FactorKNAPSACK*>(factor)->SetCost(i, costs[i]);
+    }
+    static_cast<FactorKNAPSACK*>(factor)->SetBudget(budget);
+    return factor;
+  }
+
   // Create a new PAIR factor. 
   // All edge log-potentials are assumed to be zero, except for the
   // configuration where both inputs are 1, which receives the value

@@ -85,6 +85,11 @@ cdef extern from "ad3/FactorGraph.h" namespace "AD3":
                                    vector[bool] negated,
                                    int budget,
                                    bool owned_by_graph)                                   
+        Factor *CreateFactorKNAPSACK(vector[BinaryVariable*] variables,
+                                     vector[bool] negated,
+                                     vector[double] costs,
+                                     double budget,
+                                     bool owned_by_graph)                                   
         void DeclareFactor(Factor *factor,
                            vector[BinaryVariable*] variables,
                            bool owned_by_graph)
@@ -422,6 +427,16 @@ cdef class PFactorGraph:
             variables.push_back((<PBinaryVariable>var).thisptr)
             negated.push_back(p_negated[i])
         self.thisptr.CreateFactorBUDGET(variables, negated, budget, owned_by_graph)
+
+    def create_factor_knapsack(self, p_variables, p_negated, p_costs, double budget, bool owned_by_graph=True):
+        cdef vector[BinaryVariable*] variables
+        cdef vector[bool] negated
+        cdef vector[double] costs
+        for i, var in enumerate(p_variables):
+            variables.push_back((<PBinaryVariable>var).thisptr)
+            negated.push_back(p_negated[i])
+            costs.push_back(p_costs[i])
+        self.thisptr.CreateFactorKNAPSACK(variables, negated, costs, budget, owned_by_graph)
 
     def create_factor_dense(self,  p_multi_variables, p_additional_log_potentials, bool owned_by_graph=True):
         cdef vector[MultiVariable*] multi_variables
