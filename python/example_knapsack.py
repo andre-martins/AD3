@@ -1,16 +1,26 @@
 import numpy as np
 import pdb
 import ad3
+import time
 
 def test_random_instance(n):
   costs = np.random.rand(n)
   budget = np.sum(costs) * np.random.rand()
   scores = np.random.randn(n)
-  x_gurobi = solve_lp_knapsack_gurobi(scores, costs, budget)
+  
+  tic = time.clock()
+  x_gold = solve_lp_knapsack_lpsolve(scores, costs, budget)
+  toc = time.clock()
+  print 'lpsolve:', toc - tic
+  
+  tic = time.clock()
   x = solve_lp_knapsack_ad3(scores, costs, budget)
-  res = x - x_gurobi
-  print x
-  print x_gurobi
+  toc = time.clock()
+  print 'ad3:', toc - tic
+
+  res = x - x_gold
+  #print x
+  #print x_gold
   if res.dot(res) > 1e-6:
     pdb.set_trace()
 
@@ -27,6 +37,7 @@ def solve_lp_knapsack_ad3(scores, costs, budget):
 
   #pdb.set_trace()
   # Run AD3.        
+  factor_graph.set_verbosity(1)
   factor_graph.set_eta_ad3(.1)
   factor_graph.adapt_eta_ad3(True)
   factor_graph.set_max_iterations_ad3(1000)
@@ -71,9 +82,41 @@ def solve_lp_knapsack_gurobi(scores, costs, budget):
     
   return x        
 
+def solve_lp_knapsack_lpsolve(scores, costs, budget):
+  import lpsolve55 as lps
+  
+  relax = True
+  n = len(scores)
+  
+  lp = lps.lpsolve('make_lp', 0, n)        
+  # Set verbosity level. 3 = only warnings and errors.
+  lps.lpsolve('set_verbose', lp, 3)        
+  lps.lpsolve('set_obj_fn', lp, -scores)
+  
+  lps.lpsolve('add_constraint', lp, costs, lps.LE, budget)
+  
+  lps.lpsolve('set_lowbo', lp, np.zeros(n))
+  lps.lpsolve('set_upbo', lp, np.ones(n))
+
+  if not relax:
+      lps.lpsolve('set_int', lp, [True] * n)
+  else:
+      lps.lpsolve('set_int', lp, [False] * n)
+               
+  # Solve the ILP, and call the debugger if something went wrong.
+  ret = lps.lpsolve('solve', lp)
+  assert ret == 0, pdb.set_trace()
+
+  # Retrieve solution and return
+  [x, _] = lps.lpsolve('get_variables', lp)
+  x = np.array(x)
+    
+  return x        
 
 
 if __name__ == "__main__":
-  n = 10
-  test_random_instance(n)
+  n_tests = 100
+  n = 100
+  for i in xrange(n_tests):
+    test_random_instance(n)
 
