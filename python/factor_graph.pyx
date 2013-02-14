@@ -38,6 +38,11 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
     cdef cppclass FactorGraph:
         FactorGraph()
         void SetVerbosity(int verbosity)
+        void SetEtaPSDD(double eta)
+        void SetMaxIterationsPSDD(int max_iterations)
+        int SolveLPMAPWithPSDD(vector[double]* posteriors,
+                               vector[double]* additional_posteriors,
+                               double* value)
         void SetEtaAD3(double eta)
         void AdaptEtaAD3(bool adapt)
         void SetMaxIterationsAD3(int max_iterations)
@@ -463,6 +468,27 @@ cdef class PFactorGraph:
             p_factor.set_allocate(False)
         factor = (<PFactor>p_factor).thisptr
         self.thisptr.DeclareFactor(factor, variables, owned_by_graph)
+
+    def set_eta_psdd(self, double eta):
+        self.thisptr.SetEtaPSDD(eta)
+
+    def set_max_iterations_psdd(self, int max_iterations):
+        self.thisptr.SetMaxIterationsPSDD(max_iterations)
+
+    def solve_lp_map_psdd(self):
+        cdef vector[double] posteriors
+        cdef vector[double] additional_posteriors
+        cdef double value
+        self.thisptr.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors,
+                                        &value)
+        p_posteriors, p_additional_posteriors = [], []
+        cdef size_t i
+        for i in range(posteriors.size()):
+            p_posteriors.append(posteriors[i])
+        for i in range(additional_posteriors.size()):
+            p_additional_posteriors.append(additional_posteriors[i])
+
+        return value, p_posteriors, p_additional_posteriors
 
     def set_eta_ad3(self, double eta):
         self.thisptr.SetEtaAD3(eta)
