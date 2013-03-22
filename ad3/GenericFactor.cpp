@@ -35,6 +35,13 @@ static int num_inversions_incremental = 0;
 static int num_eigenvalue_computations = 0;
 #endif
 
+void GenericFactor::ClearActiveSet() {
+  for (int j = 0; j < active_set_.size(); ++j) {
+    DeleteConfiguration(active_set_[j]);
+  }
+  active_set_.clear();
+}
+
 bool GenericFactor::InvertAfterInsertion(
     const vector<Configuration> &active_set,
     const Configuration &inserted_element) {
@@ -56,7 +63,7 @@ bool GenericFactor::InvertAfterInsertion(
 
   r[0] = 1.0;
   for (int i = 0; i < active_set.size(); ++i) {
-    // Count how many variable values the new assignment 
+    // Count how many variable values the new assignment
     // have in common with the i-th assignment.
     int num_common_values = CountCommonValues(active_set[i], inserted_element);
     r[i+1] = static_cast<double>(num_common_values);

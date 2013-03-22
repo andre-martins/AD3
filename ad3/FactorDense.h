@@ -26,6 +26,9 @@ namespace AD3 {
 
 class FactorDense : public GenericFactor {
  public:
+  FactorDense() {}
+  virtual ~FactorDense() { ClearActiveSet(); }
+
   int type() { return FactorTypes::FACTOR_MULTI_DENSE; }
 
   // Compute the score of a given assignment.

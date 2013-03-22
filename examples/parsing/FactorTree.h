@@ -38,6 +38,9 @@ class Arc {
 
 class FactorTree : public GenericFactor {
  public:
+  FactorTree() {}
+  virtual ~FactorTree() { ClearActiveSet(); }
+
   int RunCLE(const vector<double>& scores,
              vector<int> *heads,
              double *value);

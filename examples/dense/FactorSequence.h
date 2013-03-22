@@ -25,6 +25,9 @@ namespace AD3 {
 
 class FactorSequence : public GenericFactor {
  public:
+  FactorSequence () {}
+  virtual ~FactorSequence() { ClearActiveSet(); }
+
   // Compute the score of a given assignment.
   void Maximize(const vector<double> &variable_log_potentials,
                 const vector<double> &additional_log_potentials,
