@@ -13,3 +13,7 @@
 2012-10-10 AD3 2.0.1 afm@cs.cmu.edu
   Fixed initialization of STL vectors which was causing problems
   in some compilers.
+
+2013-03-22 AD3 2.0.2 afm@cs.cmu.edu
+  Fixed memory leak in generic factors due to some configurations not being
+  deleted.
