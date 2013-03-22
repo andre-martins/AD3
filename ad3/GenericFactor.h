@@ -94,14 +94,14 @@ class GenericFactor : public Factor {
                         Configuration &configuration,
                         double *value) = 0;
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   virtual void UpdateMarginalsFromConfiguration(
     const Configuration &configuration,
     double weight,
     vector<double> *variable_posteriors,
     vector<double> *additional_posteriors) = 0;
-    
+
   // Count how many common values two configurations have.
   virtual int CountCommonValues(
     const Configuration &configuration1,
