@@ -38,7 +38,8 @@ for i, j in itertools.product(xrange(grid_size), repeat=2):
 factor_graph.set_eta_ad3(.1)
 factor_graph.adapt_eta_ad3(True)
 factor_graph.set_max_iterations_ad3(1000)
-value, marginals, edge_marginals = factor_graph.solve_lp_map_ad3()
+value, marginals, edge_marginals, solver_status =\
+    factor_graph.solve_lp_map_ad3()
 
 res = np.array(marginals).reshape(20, 20, 5)
 plt.matshow(np.argmax(res, axis=-1), vmin=0, vmax=4)

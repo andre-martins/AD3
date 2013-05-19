@@ -1,6 +1,7 @@
 import itertools
 import numpy as np
-import ad3
+#from numpy.testing.utils import assert_array_almost_equal
+from . import ad3
 
 
 def simple_grid(unaries, pairwise, verbose=1):
@@ -39,7 +40,8 @@ def simple_grid(unaries, pairwise, verbose=1):
     return marginals, edge_marginals, value
 
 
-def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000):
+def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000,
+                  eta=.1, exact=False):
     if unaries.shape[1] != edge_weights.shape[1]:
         raise ValueError("incompatible shapes of unaries"
                          " and edge_weights.")
@@ -65,12 +67,21 @@ def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000):
             factor_graph.create_factor_dense(edge_variables,
                                              edge_weights[i].ravel())
 
-    factor_graph.set_eta_ad3(.1)
+    factor_graph.set_eta_ad3(eta)
     factor_graph.adapt_eta_ad3(True)
     factor_graph.set_max_iterations_ad3(n_iterations)
     factor_graph.set_verbosity(verbose)
-    value, marginals, edge_marginals = factor_graph.solve_lp_map_ad3()
+    factor_graph.fix_multi_variables_without_factors()
+    if exact:
+        value, marginals, edge_marginals, solver_status =\
+            factor_graph.solve_exact_map_ad3()
+    else:
+        value, marginals, edge_marginals, solver_status =\
+            factor_graph.solve_lp_map_ad3()
     marginals = np.array(marginals).reshape(unaries.shape)
-    edge_marginals = np.array(edge_marginals).reshape(-1, n_states ** 2)
 
-    return marginals, edge_marginals, value
+    #assert_array_almost_equal(np.sum(marginals, axis=-1), 1)
+    edge_marginals = np.array(edge_marginals).reshape(-1, n_states ** 2)
+    solver_string = ["integral", "fractional", "infeasible", "unsolved"]
+
+    return marginals, edge_marginals, value, solver_string[solver_status]
