@@ -41,6 +41,9 @@ class Grandparent {
 
 class FactorGrandparentHeadAutomaton : public GenericFactor {
  public:
+  FactorGrandparentHeadAutomaton () {}
+  virtual ~FactorGrandparentHeadAutomaton() { ClearActiveSet(); }
+
   // Compute the score of a given assignment.
   void Maximize(const vector<double> &variable_log_potentials,
                 const vector<double> &additional_log_potentials,
