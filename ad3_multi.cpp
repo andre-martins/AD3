@@ -592,6 +592,12 @@ int LoadGraph(ifstream &file_graph,
   cout << "Read " << num_variables << " variables and "
        << num_factors << " factors." << endl;
 
+  //ofstream file_out("test.fg", ios_base::out);
+  //factor_graph->Print(file_out);
+  //file_out.flush();
+  //file_out.clear();
+  //file_out.close();
+
   //factor_graph->Initialize(variables, factors, num_messages);
 
   return 0;

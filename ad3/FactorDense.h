@@ -28,6 +28,29 @@ class FactorDense : public GenericFactor {
  public:
   int type() { return FactorTypes::FACTOR_MULTI_DENSE; }
 
+  // Print as a string.
+  void Print(ostream& stream) {
+    stream << "DENSE";
+    Factor::Print(stream);
+
+    // Write the number of multi-variables.
+    stream << " " << multi_variables_.size();
+
+    // Write the number of states for each multi-variable.
+    for (int k = 0; k < multi_variables_.size(); ++k) {
+      int num_states = multi_variables_[k]->GetNumStates();
+      stream << " " << num_states;
+    }
+
+    // Write the additional log-potentials.
+    int num_configurations = GetNumConfigurations();
+    for (int index = 0; index < num_configurations; ++index) {
+        stream << " " << setprecision(9) << additional_log_potentials_[index];
+    }
+      
+    stream << endl;
+  }
+
   // Compute the score of a given assignment.
   void Maximize(const vector<double> &variable_log_potentials,
                 const vector<double> &additional_log_potentials,
