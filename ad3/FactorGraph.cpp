@@ -716,7 +716,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
 
   // Solve the LP relaxation.
   int status = RunAD3(*best_lower_bound + cumulative_value,
-                      posteriors, 
+                      posteriors,
                       additional_posteriors,
                       value,
                       best_upper_bound);
@@ -742,7 +742,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
 
   // Look for the most fractional component.
   int variable_to_branch = -1;
-  double most_fractional_value = 1.0;
+  double most_fractional_value = 0.25; // 0.25 = (1-0.5) * (1-0.5).
   for (int i = 0; i < variables_.size(); ++i) {
     if (branched_variables[i]) continue; // Already branched.
     double diff = (*posteriors)[i] - 0.5;
@@ -752,6 +752,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
       most_fractional_value = diff;
     }
   }
+  assert(variable_to_branch >= 0);
   branched_variables[variable_to_branch] = true;
   cout << "Branching on variable " << variable_to_branch
        << " at depth " << depth
@@ -823,6 +824,8 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
     *posteriors = posteriors_one;
     *additional_posteriors = additional_posteriors_one;
   }
+
+  branched_variables[variable_to_branch] = false;
 
   //return STATUS_OPTIMAL_INTEGER;
   return status;
@@ -1166,7 +1169,7 @@ int FactorGraph::RunAD3(double lower_bound,
   }
   for (int i = 0; i < additional_log_potentials.size(); ++i) {
     *value += additional_log_potentials[i] * (*additional_posteriors)[i];
-  } 
+  }
 
   if (verbosity_ > 1) {
     cout << "Solution value after "
