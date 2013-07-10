@@ -737,6 +737,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   if (max_branching_depth >= 0 && depth > max_branching_depth) {
     *value = -1e100;
     *best_upper_bound = -1e100;
+    cout << "Maximum depth exceeded." << endl;
     return STATUS_UNSOLVED;
   }
 
@@ -809,6 +810,8 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
     //return STATUS_UNSOLVED;
   }
 
+  branched_variables[variable_to_branch] = false;
+
   if (status_zero == STATUS_INFEASIBLE &&
       status_one == STATUS_INFEASIBLE) {
     *value = -1e100;
@@ -824,8 +827,6 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
     *posteriors = posteriors_one;
     *additional_posteriors = additional_posteriors_one;
   }
-
-  branched_variables[variable_to_branch] = false;
 
   //return STATUS_OPTIMAL_INTEGER;
   return status;
