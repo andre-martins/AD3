@@ -737,7 +737,9 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   if (max_branching_depth >= 0 && depth > max_branching_depth) {
     *value = -1e100;
     *best_upper_bound = -1e100;
-    cout << "Maximum depth exceeded." << endl;
+    if (verbosity_ > 1) {
+        cout << "Maximum depth exceeded." << endl;
+    }
     return STATUS_UNSOLVED;
   }
 
@@ -755,10 +757,12 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   }
   assert(variable_to_branch >= 0);
   branched_variables[variable_to_branch] = true;
-  cout << "Branching on variable " << variable_to_branch
-       << " at depth " << depth
-       << " (value = " << (*posteriors)[variable_to_branch] << ")"
-       << endl;
+  if (verbosity_ > 1) {
+      cout << "Branching on variable " << variable_to_branch
+           << " at depth " << depth
+           << " (value = " << (*posteriors)[variable_to_branch] << ")"
+           << endl;
+  }
 
   double infinite_potential = 1000.0;
   double original_potential = variables_[variable_to_branch]->GetLogPotential();
