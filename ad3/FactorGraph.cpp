@@ -18,7 +18,11 @@
 
 #include <iostream>
 #include <math.h>
+#ifdef _WIN32
+#include <gettimeofday.h>
+#else
 #include <sys/time.h>
+#endif
 #include "FactorGraph.h"
 #include "Utils.h"
 

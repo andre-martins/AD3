@@ -17,7 +17,11 @@
 // along with AD3 2.0.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <math.h>
-#include <time.h>
+#ifdef _WIN32
+#include <gettimeofday.h>
+#else
+#include <sys/time.h>
+#endif
 #include <iostream>
 #include <sstream>
 #include <fstream>

@@ -19,7 +19,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#ifdef _WIN32
+#include <gettimeofday.h>
+#else
 #include <sys/time.h>
+#endif
 #include <vector>
 #include <string>
 #include <algorithm>
