@@ -3,7 +3,7 @@ from libcpp cimport bool
 
 # get the classes from the c++ headers
 
-cdef extern from "ad3/Factor.h" namespace "AD3":
+cdef extern from "../ad3/Factor.h" namespace "AD3":
     cdef cppclass BinaryVariable:
         BinaryVariable()
         double GetLogPotential()
@@ -12,23 +12,27 @@ cdef extern from "ad3/Factor.h" namespace "AD3":
     cdef cppclass Factor:
         Factor()
 
-cdef extern from "ad3/MultiVariable.h" namespace "AD3":
+cdef extern from "../ad3/MultiVariable.h" namespace "AD3":
     cdef cppclass MultiVariable:
         int GetNumStates()
         double GetLogPotential(int i)
         void SetLogPotential(int i, double log_potential)
 
 
-cdef extern from "ad3/FactorGraph.h" namespace "AD3":
+cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
     cdef cppclass FactorGraph:
         FactorGraph()
         void SetVerbosity(int verbosity)
         void SetEtaAD3(double eta)
         void AdaptEtaAD3(bool adapt)
         void SetMaxIterationsAD3(int max_iterations)
+        void FixMultiVariablesWithoutFactors()
         int SolveLPMAPWithAD3(vector[double]* posteriors,
                               vector[double]* additional_posteriors,
                               double* value)
+        int SolveExactMAPWithAD3(vector[double] *posteriors,
+                                 vector[double] *additional_posteriors, 
+                                 double *value)
 
         BinaryVariable * CreateBinaryVariable()
         MultiVariable * CreateMultiVariable(int num_states)
@@ -91,6 +95,9 @@ cdef class PFactorGraph:
         pmult.thisptr = mult
         return pmult
 
+    def fix_multi_variables_without_factors(self):
+        self.thisptr.FixMultiVariablesWithoutFactors()
+
     def set_eta_ad3(self, double eta):
         self.thisptr.SetEtaAD3(eta)
 
@@ -104,8 +111,10 @@ cdef class PFactorGraph:
         cdef vector[double] posteriors
         cdef vector[double] additional_posteriors
         cdef double value
-        self.thisptr.SolveLPMAPWithAD3(&posteriors, &additional_posteriors,
-                                       &value)
+        cdef int solver_status
+        solver_status = self.thisptr.SolveLPMAPWithAD3(&posteriors,
+                                                       &additional_posteriors,
+                                                       &value)
         p_posteriors, p_additional_posteriors = [], []
         cdef size_t i
         for i in range(posteriors.size()):
@@ -113,7 +122,24 @@ cdef class PFactorGraph:
         for i in range(additional_posteriors.size()):
             p_additional_posteriors.append(additional_posteriors[i])
 
-        return value, p_posteriors, p_additional_posteriors
+        return value, p_posteriors, p_additional_posteriors, solver_status
+
+    def solve_exact_map_ad3(self):
+        cdef vector[double] posteriors
+        cdef vector[double] additional_posteriors
+        cdef double value
+        cdef int solver_status
+        solver_status = self.thisptr.SolveExactMAPWithAD3(&posteriors,
+                                                       &additional_posteriors,
+                                                       &value)
+        p_posteriors, p_additional_posteriors = [], []
+        cdef size_t i
+        for i in range(posteriors.size()):
+            p_posteriors.append(posteriors[i])
+        for i in range(additional_posteriors.size()):
+            p_additional_posteriors.append(additional_posteriors[i])
+
+        return value, p_posteriors, p_additional_posteriors, solver_status
 
     def create_factor_dense(self,  p_multi_variables, p_additional_log_potentials, bool owned_by_graph=True):
         cdef vector[MultiVariable*] multi_variables
