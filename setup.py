@@ -34,7 +34,7 @@ class bdist_egg_fix(bdist_egg):
 
 
 setup(name='ad3',
-      version="2.0",
+      version="2.0.1",
       author="Andre Martins",
       url="http://www.ark.cs.cmu.edu/AD3",
       author_email="afm@cs.cmu.edu",
