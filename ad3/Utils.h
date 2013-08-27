@@ -20,7 +20,7 @@
 #define UTILS_H
 
 #ifdef _WIN32
-#include <gettimeofday.h>
+#include <time.h>
 #else
 #include <sys/time.h>
 #endif
@@ -40,6 +40,16 @@ namespace AD3 {
 
 #define LOG_ZERO -1000
 #define LOG_STABLE(a) (a == 0? LOG_ZERO : log(a))
+
+#ifdef _WIN32
+#ifndef _WINSOCKAPI_
+struct timeval {
+        long    tv_sec;         /* seconds */
+        long    tv_usec;        /* and microseconds */
+};
+#endif
+extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+#endif
 
 extern int diff_ms(timeval t1, timeval t2);
 
