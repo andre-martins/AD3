@@ -33,11 +33,12 @@ def simple_grid(unaries, pairwise, verbose=1):
     factor_graph.adapt_eta_ad3(True)
     factor_graph.set_max_iterations_ad3(5000)
     factor_graph.set_verbosity(verbose)
-    value, marginals, edge_marginals = factor_graph.solve_lp_map_ad3()
+    value, marginals, edge_marginals, solver_status = factor_graph.solve_lp_map_ad3()
     marginals = np.array(marginals).reshape(unaries.shape)
     edge_marginals = np.array(edge_marginals).reshape(-1, n_states ** 2)
 
-    return marginals, edge_marginals, value
+    solver_string = ["integral", "fractional", "infeasible", "unsolved"]
+    return marginals, edge_marginals, value, solver_string[solver_status]
 
 
 def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000,
