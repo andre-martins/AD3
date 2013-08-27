@@ -197,7 +197,7 @@ void GenericFactor::EigenDecompose(vector<double> *similarities,
   }
 #endif
 
-  int size = sqrt(similarities->size());
+  int size = static_cast<int>(sqrt(static_cast<double>(similarities->size())));
 #ifdef EIGEN
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
   Eigen::MatrixXd sim(size, size);
