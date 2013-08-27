@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from simple_inference import simple_grid, general_graph
+from ad3 import simple_grid, general_graph
 
 
 def example_binary():

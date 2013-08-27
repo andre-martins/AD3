@@ -6,7 +6,7 @@ Author: Andreas Mueller <amueller@ais.uni-bonn.de>
 Build Instructions
 ------------------
 The Python bindings require Cython.
-To build the Python bindings, 
+To build the Python bindings use the following commands at the top level:
 
 ```bash
 python setup.py install
