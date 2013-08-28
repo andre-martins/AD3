@@ -19,11 +19,7 @@
 #include "Utils.h"
 #include <limits>
 
-namespace AD3 {
-
 #ifdef _WIN32
-
-//#include <windows.h> //I've ommited this line.
 #if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
   #define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
 #else
@@ -71,6 +67,8 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
   return 0;
 }
 #endif
+
+namespace AD3 {
 
 int diff_ms(timeval t1, timeval t2) {
   return (((t1.tv_sec - t2.tv_sec) * 1000000) +

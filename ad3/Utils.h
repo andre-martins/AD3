@@ -28,6 +28,17 @@
 #include <string>
 #include <algorithm>
 
+#ifdef _WIN32
+#include <windows.h> //I've ommited this line.
+#ifndef _WINSOCKAPI_
+struct timeval {
+        long    tv_sec;         /* seconds */
+        long    tv_usec;        /* and microseconds */
+};
+#endif
+extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+#endif
+
 using namespace std;
 
 namespace AD3 {
@@ -40,16 +51,6 @@ namespace AD3 {
 
 #define LOG_ZERO -1000
 #define LOG_STABLE(a) (a == 0? LOG_ZERO : log(a))
-
-#ifdef _WIN32
-#ifndef _WINSOCKAPI_
-struct timeval {
-        long    tv_sec;         /* seconds */
-        long    tv_usec;        /* and microseconds */
-};
-#endif
-extern int gettimeofday(struct timeval *tv, struct timezone *tz);
-#endif
 
 extern int diff_ms(timeval t1, timeval t2);
 
