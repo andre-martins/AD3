@@ -1,0 +1,2 @@
+recursive-include ad3 *.h *.cpp
+recursive-include Eigen *

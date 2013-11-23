@@ -19,10 +19,25 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#ifdef _WIN32
+#include <time.h>
+#else
 #include <sys/time.h>
+#endif
 #include <vector>
 #include <string>
 #include <algorithm>
+
+#ifdef _WIN32
+#include <windows.h> //I've ommited this line.
+#ifndef _WINSOCKAPI_
+struct timeval {
+        long    tv_sec;         /* seconds */
+        long    tv_usec;        /* and microseconds */
+};
+#endif
+extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+#endif
 
 using namespace std;
 

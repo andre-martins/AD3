@@ -18,7 +18,6 @@
 
 #include <iostream>
 #include <math.h>
-#include <sys/time.h>
 #include "FactorGraph.h"
 #include "Utils.h"
 

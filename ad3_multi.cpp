@@ -17,7 +17,6 @@
 // along with AD3 2.0.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <math.h>
-#include <time.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
