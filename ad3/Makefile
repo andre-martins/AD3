@@ -3,7 +3,7 @@ CC = g++
 DEBUG = -g
 INCLUDES = -I./ad3/ -I../Eigen
 LIBS = -L/usr/local/lib/ -L./
-CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 -fPIC $(INCLUDES)
+CFLAGS = -O3 -Wall -Wno-sign-compare -c -fmessage-length=0 $(INCLUDES) -fPIC
 LFLAGS = $(LIBS) -lpthread
 
 all : libad3.a

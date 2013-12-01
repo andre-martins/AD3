@@ -33,7 +33,12 @@ class GenericFactor : public Factor {
   GenericFactor() {
     verbosity_ = 2;
     num_max_iterations_QP_ = 10;
-  };
+  }
+
+  // Note: every class that derives from GenericFactor must
+  // call ClearActiveSet() in their destructor.
+  // We cannot call ClearActiveSet here because that will trigger
+  // a call to the virtual function DeleteConfiguration.
   virtual ~GenericFactor() {};
 
   virtual int type() { return FactorTypes::FACTOR_GENERIC; }
@@ -41,8 +46,10 @@ class GenericFactor : public Factor {
   void SetVerbosity(int verbosity) { verbosity_ = verbosity; }
 
  protected:
-  // Compute posterior marginals from a sparse distribution, 
-  // expressed as a set of configurations (active_set) and 
+  void ClearActiveSet();
+
+  // Compute posterior marginals from a sparse distribution,
+  // expressed as a set of configurations (active_set) and
   // a probability/weight for each configuration (stored in
   // vector distribution).
   void ComputeMarginalsFromSparseDistribution(
@@ -67,7 +74,7 @@ class GenericFactor : public Factor {
                           int removed_index);
 
   void ComputeActiveSetSimilarities(const vector<Configuration> &active_set,
-						            vector<double> *similarities);
+                                    vector<double> *similarities);
 
   void EigenDecompose(vector<double> *similarities,
                       vector<double> *eigenvalues);

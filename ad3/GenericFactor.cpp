@@ -35,6 +35,13 @@ static int num_inversions_incremental = 0;
 static int num_eigenvalue_computations = 0;
 #endif
 
+void GenericFactor::ClearActiveSet() {
+  for (int j = 0; j < active_set_.size(); ++j) {
+    DeleteConfiguration(active_set_[j]);
+  }
+  active_set_.clear();
+}
+
 bool GenericFactor::InvertAfterInsertion(
     const vector<Configuration> &active_set,
     const Configuration &inserted_element) {
@@ -56,7 +63,7 @@ bool GenericFactor::InvertAfterInsertion(
 
   r[0] = 1.0;
   for (int i = 0; i < active_set.size(); ++i) {
-    // Count how many variable values the new assignment 
+    // Count how many variable values the new assignment
     // have in common with the i-th assignment.
     int num_common_values = CountCommonValues(active_set[i], inserted_element);
     r[i+1] = static_cast<double>(num_common_values);
@@ -190,7 +197,7 @@ void GenericFactor::EigenDecompose(vector<double> *similarities,
   }
 #endif
 
-  int size = sqrt(similarities->size());
+  int size = static_cast<int>(sqrt(static_cast<double>(similarities->size())));
 #ifdef EIGEN
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
   Eigen::MatrixXd sim(size, size);
@@ -542,7 +549,7 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
       double alpha = 1.0;
       for (int i = 0; i < active_set_.size(); ++i) {
         assert(distribution_[i] >= -1e-12);
-        if (z[i] >= distribution_[i]) continue;
+        if (z[i] >= distribution_[i] - 1e-12) continue;
         if (z[i] < 0) exist_blocking = true;
         double tmp = distribution_[i] / (distribution_[i] - z[i]);
         if (blocking < 0 || tmp < alpha) {
@@ -566,6 +573,13 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
           for (int i = 0; i < active_set_.size(); ++i) {
             z[i] = (1 - alpha) * distribution_[i] + alpha * z[i];
             distribution_[i] = z[i];
+            if (distribution_[i] < 0.0) {
+              if (verbosity_ > 2) {
+                cout << "Truncating distribution variable: "
+                     << distribution_[i] << endl;
+              }
+              distribution_[i] = 0.0;
+            }
           }
         }
 

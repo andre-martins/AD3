@@ -71,6 +71,7 @@ class FactorSequence : public GenericFactor {
     int length = num_states_.size();
     vector<vector<double> > values(length);
     vector<vector<int> > path(length);
+    int offset_states = 0;
 
     // Initialization.
     int num_states = num_states_[0];
@@ -84,6 +85,7 @@ class FactorSequence : public GenericFactor {
                      additional_log_potentials); 
       path[0][l] = -1; // This won't be used.
     }
+    offset_states += num_states;
 
     // Recursion.
     for (int i = 0; i < length - 1; ++i) {
@@ -107,12 +109,14 @@ class FactorSequence : public GenericFactor {
                        additional_log_potentials);
         path[i+1][k] = best;
       }
+      offset_states += num_states;
     }
 
     // Termination.
     double best_value;
     int best = -1;
     for (int l = 0; l < num_states_[length - 1]; ++l) {
+      int index = index_edges_[length][l][0];
       double val = values[length - 1][l] + 
         GetEdgeScore(length, l, 0, variable_log_potentials,
                      additional_log_potentials); 
@@ -141,6 +145,7 @@ class FactorSequence : public GenericFactor {
     const vector<int>* sequence =
         static_cast<const vector<int>*>(configuration);
     *value = 0.0;
+    int offset_states = 0;
     int previous_state = 0;
     for (int i = 0; i < sequence->size(); ++i) {
       int state = (*sequence)[i];
@@ -165,6 +170,7 @@ class FactorSequence : public GenericFactor {
     vector<double> *additional_posteriors) {
     const vector<int> *sequence =
         static_cast<const vector<int>*>(configuration);
+    int offset_states = 0;
     int previous_state = 0;
     for (int i = 0; i < sequence->size(); ++i) {
       int state = (*sequence)[i];
