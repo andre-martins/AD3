@@ -153,7 +153,7 @@ cdef class PBinaryVariable:
 
     def __dealloc__(self):
         if self.allocate:
-          del self.thisptr
+            del self.thisptr
 
     def get_log_potential(self):
         return self.thisptr.GetLogPotential()
