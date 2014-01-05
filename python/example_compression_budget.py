@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 
-import ad3
+import ad3.factor_graph as fg
 
 length = 30
 budget = 10
@@ -26,7 +26,7 @@ for i in xrange(length):
 
 
 # 1) Build a factor graph using a SEQUENCE and a BUDGET factor.
-factor_graph = ad3.PFactorGraph()
+factor_graph = fg.PFactorGraph()
 multi_variables = []
 for i in xrange(length):
     multi_variable = factor_graph.create_multi_variable(2)
@@ -64,7 +64,7 @@ for i in xrange(length):
     num_states.append(2)
 
 num_factors = 0
-factor = ad3.PFactorSequence()
+factor = fg.PFactorSequence()
 # Set True below to let the factor graph own the factor so that we
 # don't need to delete it.
 factor_graph.declare_factor(factor, variables, False)
@@ -89,7 +89,7 @@ num_factors += 1
 factor_graph.set_eta_ad3(.1)
 factor_graph.adapt_eta_ad3(True)
 factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors = factor_graph.solve_lp_map_ad3()
+value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
   
 # Print solution.
 t = 0
@@ -107,7 +107,7 @@ print best_states
 
 
 # 2) Build a factor graph using a COMPRESSION_BUDGET factor.
-compression_factor_graph = ad3.PFactorGraph()
+compression_factor_graph = fg.PFactorGraph()
 
 variable_log_potentials = []
 for i in xrange(length):
@@ -141,7 +141,7 @@ for i in xrange(len(variable_log_potentials)):
     binary_variable.set_log_potential(variable_log_potentials[i])
     binary_variables.append(binary_variable)
 
-factor = ad3.PFactorCompressionBudget()
+factor = fg.PFactorCompressionBudget()
     
 variables = binary_variables
 compression_factor_graph.declare_factor(factor, variables, True)
@@ -158,7 +158,7 @@ compression_factor_graph.set_max_iterations_ad3(1000)
 print bigram_positions
 
 #pdb.set_trace()
-value, posteriors, additional_posteriors = compression_factor_graph.solve_lp_map_ad3()
+value, posteriors, additional_posteriors, status = compression_factor_graph.solve_lp_map_ad3()
 
 # Print solution.
 t = 0
