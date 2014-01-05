@@ -1,7 +1,9 @@
-from setuptools import setup
-from setuptools.command.bdist_egg import bdist_egg
-#from distutils.command.build_clib import build_clib
-from setuptools.extension import Extension
+#from setuptools import setup
+#from setuptools.command.bdist_egg import bdist_egg
+#from setuptools.extension import Extension
+from distutils.command.build_clib import build_clib
+from distutils.core import setup
+from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 libad3 = ('ad3', {
@@ -27,10 +29,10 @@ libad3 = ('ad3', {
 # install_lib doesn't call build_clib
 
 
-class bdist_egg_fix(bdist_egg):
-    def run(self):
-        self.call_command('build_clib')
-        bdist_egg.run(self)
+#class bdist_egg_fix(bdist_egg):
+#    def run(self):
+#        self.call_command('build_clib')
+#        bdist_egg.run(self)
 
 
 setup(name='ad3',
@@ -41,10 +43,10 @@ setup(name='ad3',
       package_dir={'ad3': 'python/ad3'},
       packages=['ad3'],
       libraries=[libad3],
-      cmdclass={'build_ext': build_ext, 'bdist_egg': bdist_egg_fix},
-      #cmdclass={'build_ext': build_ext},
+      #cmdclass={'build_ext': build_ext, 'bdist_egg': bdist_egg_fix},
+      cmdclass={'build_ext': build_ext},
       ext_modules=[Extension("ad3.factor_graph",
                              ["python/factor_graph.pyx"],
-                             include_dirs=["ad3"],
+                             include_dirs=["ad3", "./"],
                              language="c++",
                              )])

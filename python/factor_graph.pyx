@@ -143,12 +143,15 @@ cdef extern from "../examples/summarization/FactorGeneralTreeCounts.h" namespace
 # wrap them into python extension types
 cdef class PBinaryVariable:
     cdef BinaryVariable *thisptr
+    cdef bool allocate
     def __cinit__(self, allocate=True):
+        self.allocate = allocate
         if allocate:
             self.thisptr = new BinaryVariable()
 
     def __dealloc__(self):
-        del self.thisptr
+        if self.allocate:
+            del self.thisptr
 
     def get_log_potential(self):
         return self.thisptr.GetLogPotential()
