@@ -1,6 +1,6 @@
 import numpy as np
 import pdb
-import ad3
+import ad3.factor_graph as fg
 import time
 
 def test_random_instance(n):
@@ -25,7 +25,7 @@ def test_random_instance(n):
     pdb.set_trace()
 
 def solve_lp_knapsack_ad3(scores, costs, budget):
-  factor_graph = ad3.PFactorGraph()
+  factor_graph = fg.PFactorGraph()
   binary_variables = []
   for i in xrange(len(scores)):
       binary_variable = factor_graph.create_binary_variable()
@@ -41,7 +41,7 @@ def solve_lp_knapsack_ad3(scores, costs, budget):
   factor_graph.set_eta_ad3(.1)
   factor_graph.adapt_eta_ad3(True)
   factor_graph.set_max_iterations_ad3(1000)
-  value, posteriors, additional_posteriors = factor_graph.solve_lp_map_ad3()
+  value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
 
   return posteriors  
 

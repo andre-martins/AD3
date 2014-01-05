@@ -3,14 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 
-import ad3
+import ad3.factor_graph as fg
 
 grid_size = 10
 num_states = 5
 num_diverse_outputs = 4 # Number of diverse outputs to generate.
 min_hamming_cost = 32 # Minimum Hamming cost between any pair of outputs.
 
-factor_graph = ad3.PFactorGraph()
+factor_graph = fg.PFactorGraph()
 
 description = ''
 num_factors = 0
@@ -94,7 +94,7 @@ for t in xrange(num_diverse_outputs):
   factor_graph.set_eta_ad3(.1)
   factor_graph.adapt_eta_ad3(True)
   factor_graph.set_max_iterations_ad3(1000)
-  value, marginals, edge_marginals = factor_graph.solve_lp_map_ad3()
+  value, marginals, edge_marginals, status = factor_graph.solve_lp_map_ad3()
 
   res = np.array(marginals).reshape(grid_size, grid_size, num_states)
   output = np.argmax(res, axis=-1)

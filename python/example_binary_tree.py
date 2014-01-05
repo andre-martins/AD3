@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 
-import ad3
+import ad3.factor_graph as fg
 
 #np.random.seed(141277)
 
@@ -47,7 +47,7 @@ print parents
 
 
 # 1) Build a factor graph using DENSE factors.
-pairwise_factor_graph = ad3.PFactorGraph()
+pairwise_factor_graph = fg.PFactorGraph()
 multi_variables = []
 for i in xrange(num_nodes):
     multi_variable = pairwise_factor_graph.create_multi_variable(2)
@@ -152,7 +152,7 @@ print best_states
 
 
 # 2) Build a factor graph using a BINARY_TREE factor.
-factor_graph = ad3.PFactorGraph()
+factor_graph = fg.PFactorGraph()
 
 variable_log_potentials = []
 additional_log_potentials = []
@@ -190,7 +190,7 @@ if upper_bound >= 0 or lower_bound >= 0:
         else:
             additional_log_potentials.append(0.0)
     
-    factor = ad3.PFactorBinaryTreeCounts()
+    factor = fg.PFactorBinaryTreeCounts()
     variables = binary_variables
     factor_graph.declare_factor(factor, variables, True)
     has_count_scores = [False] * len(parents)
@@ -199,7 +199,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     factor.set_additional_log_potentials(additional_log_potentials)
     factors.append(factor)
 else:    
-    factor = ad3.PFactorBinaryTree()
+    factor = fg.PFactorBinaryTree()
     variables = binary_variables
     factor_graph.declare_factor(factor, variables, True)
     factor.initialize(parents)
@@ -210,7 +210,7 @@ else:
 factor_graph.set_eta_ad3(.1)
 factor_graph.adapt_eta_ad3(True)
 factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors = factor_graph.solve_lp_map_ad3()
+value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
 
 # Print solution.
 t = 0

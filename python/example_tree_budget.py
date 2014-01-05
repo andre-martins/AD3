@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 
-import ad3
+import ad3.factor_graph as fg
 
 num_nodes = 5 #30
 max_num_states = 2 #5
@@ -37,7 +37,7 @@ num_states = [int(x) for x in num_states_array]
 print num_states
 
 # 1) Build a factor graph using DENSE factors.
-pairwise_factor_graph = ad3.PFactorGraph()
+pairwise_factor_graph = fg.PFactorGraph()
 multi_variables = []
 for i in xrange(num_nodes):
     multi_variable = pairwise_factor_graph.create_multi_variable(num_states[i])
@@ -123,7 +123,7 @@ if upper_bound >= 0 or lower_bound >= 0:
   pairwise_factor_graph.set_eta_ad3(.1)
   pairwise_factor_graph.adapt_eta_ad3(True)
   pairwise_factor_graph.set_max_iterations_ad3(1000)
-  value, posteriors, additional_posteriors = pairwise_factor_graph.solve_lp_map_ad3()
+  value, posteriors, additional_posteriors, status = pairwise_factor_graph.solve_lp_map_ad3()
   
   # Print solution.
   t = 0
@@ -136,7 +136,7 @@ if upper_bound >= 0 or lower_bound >= 0:
   print best_states
 
 # 2) Build a factor graph using a GENERAL_TREE factor.
-factor_graph = ad3.PFactorGraph()
+factor_graph = fg.PFactorGraph()
 
 variable_log_potentials = []
 additional_log_potentials = []
@@ -175,7 +175,7 @@ for i in xrange(len(variable_log_potentials)):
 
 #pdb.set_trace()
 if upper_bound >= 0 or lower_bound >= 0:
-    factor = ad3.PFactorGeneralTreeCounts()
+    factor = fg.PFactorGeneralTreeCounts()
     
     f = open('example_general_tree_counts.fg', 'w')
     f.write(str(len(binary_variables)) + '\n')
@@ -196,7 +196,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     f.close()
     
 else:
-    factor = ad3.PFactorGeneralTree()
+    factor = fg.PFactorGeneralTree()
 variables = binary_variables
 factor_graph.declare_factor(factor, variables, True)
 factor.initialize(parents, num_states)
@@ -207,7 +207,7 @@ factors.append(factor)
 factor_graph.set_eta_ad3(.1)
 factor_graph.adapt_eta_ad3(True)
 factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors = factor_graph.solve_lp_map_ad3()
+value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
 
 # Print solution.
 t = 0
