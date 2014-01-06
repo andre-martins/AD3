@@ -332,6 +332,45 @@ class FactorGraph {
   // contains binary variables and hard constraint factors.
   void ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph);
 
+  // Returns true if factor graph only contains PAIR factors.
+  bool IsIsingFactorGraph() {
+    for (int j = 0; j < factors_.size(); ++j) {
+      if (factors_[j]->type() != FactorTypes::FACTOR_PAIR) {
+	return false;
+      }
+    }
+    return true;
+  }
+
+  // Returns true if factor graph only contains multi-valued dense factors.
+  // (eventually with XOR factors for handling unary multi-variables.)
+  bool IsMultiDenseFactorGraph() {
+    for (int j = 0; j < factors_.size(); ++j) {
+      // TODO: include other non-dense factors here.
+      if (factors_[j]->type() != FactorTypes::FACTOR_MULTI_DENSE) {
+        if (factors_[j]->type() == FactorTypes::FACTOR_XOR) {
+          for (int k = 0; k < factors_[j]->Degree(); ++k) {
+            if (factors_[j]->GetVariable(k)->Degree() > 1) {
+	      std::cout << "degree = " << factors_[j]->GetVariable(k)->Degree() << endl;
+              return false;
+            }
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  // Round primal variables in multi-valued dense factors. 
+  // Argument "posteriors" is both input (fractional values) and output
+  // (integer values).
+  void RoundMultiDensePrimalVariables(const vector<int> &additional_factor_offsets,
+				      vector<double> *posteriors_feasible,
+				      vector<double> *additional_posteriors_feasible);
+
+
   // Transform the factor graph to incorporate evidence information.
   // The vector evidence is given {0,1,-1} values (-1 means no evidence). The 
   // size of the vector is the number of variables plus the number of additional

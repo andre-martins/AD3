@@ -118,6 +118,87 @@ void FactorGraph::ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph) {
   //binary_factor_graph->Print(cout);
 }
 
+// Round primal variables in multi-valued dense factors. 
+// Arguments "posteriors_feasible" and "additional_posteriors_feasible"
+// are both input (fractional values) and output (integer values).
+void FactorGraph::RoundMultiDensePrimalVariables(
+    const vector<int> &additional_factor_offsets,
+    vector<double> *posteriors_feasible,
+    vector<double> *additional_posteriors_feasible) {
+  bool random = false;
+  //if (random) srand((unsigned)time(NULL));
+
+  // Get integer values looking at the variable posteriors only.
+  for (int i = 0; i < multi_variables_.size(); ++i) {
+    MultiVariable *multi_variable = multi_variables_[i];
+    int best = -1;
+    if (random) {
+      double random_number = static_cast<double>(rand()) / 
+        static_cast<double>(RAND_MAX);
+      //cout << random_number << endl;
+      double sum = 0.0;
+      for (int k = 0; k < multi_variable->GetNumStates(); ++k) {
+        BinaryVariable *variable = multi_variable->GetState(k);
+        sum += (*posteriors_feasible)[variable->GetId()];
+        if (random_number < sum) {
+          best = k;
+          break;
+        }
+      }
+      assert(best >= 0);
+    } else {
+      double best_val;
+      for (int k = 0; k < multi_variable->GetNumStates(); ++k) {
+        BinaryVariable *variable = multi_variable->GetState(k);
+        if (best < 0 || (*posteriors_feasible)[variable->GetId()] > best_val) {
+          best = k;
+          best_val = (*posteriors_feasible)[variable->GetId()];
+        }
+      }
+    }
+    for (int k = 0; k < multi_variable->GetNumStates(); ++k) {
+      BinaryVariable *variable = multi_variable->GetState(k);
+      (*posteriors_feasible)[variable->GetId()] = (k == best)? 1.0 : 0.0;
+    }
+  }
+
+  // Now compute the factor posteriors deterministically given the 
+  // variable posteriors.
+  for (int j = 0; j < factors_.size(); ++j) {
+    Factor *factor = factors_[j];
+    int factor_degree = factor->Degree();
+    if (factor->type() == FactorTypes::FACTOR_XOR) continue;
+    assert(factor->type() == FactorTypes::FACTOR_MULTI_DENSE);
+    FactorDense *factor_multi_dense = 
+      static_cast<FactorDense*>(factor);
+
+    int offset = additional_factor_offsets[j];
+    for (int index = 0;
+	 index < factor_multi_dense->GetNumConfigurations();
+	 ++index) {
+      (*additional_posteriors_feasible)[offset + index] = 0.0;
+    }
+
+    vector<int> values(factor_multi_dense->GetNumMultiVariables());
+    for (int i = 0; i < factor_multi_dense->GetNumMultiVariables(); ++i) {
+      MultiVariable *multi_variable = factor_multi_dense->GetMultiVariable(i);
+      int best = -1;
+      int best_val;
+      for (int k = 0; k < multi_variable->GetNumStates(); ++k) {
+        BinaryVariable *variable = multi_variable->GetState(k);
+        if (best < 0 || best_val < (*posteriors_feasible)[variable->GetId()]) {
+          best = k;
+          best_val = (*posteriors_feasible)[variable->GetId()];
+        }
+      }
+      assert(best >= 0);
+      values[i] = best;
+    }
+    int index = factor_multi_dense->GetConfigurationIndex(values);
+    (*additional_posteriors_feasible)[offset + index] = 1.0;
+  }
+}
+
 // Copy all additional log potentials to a vector for easier manipulation.
 // For each factor, store in factor_indices the starting position of the 
 // additional log potentials for that factor.
@@ -877,6 +958,20 @@ int FactorGraph::RunAD3(double lower_bound,
   double dual_obj_best = 1e100, primal_rel_obj_best = -1e100;
   double primal_obj_best = -1e100;
   int num_iterations_compute_dual = 50;
+  bool multi_graph = IsMultiDenseFactorGraph();
+  if (multi_graph) {
+    if (verbosity_ > 0) { // 1
+      cout << "Factor graph contains only dense factors with multi-valued variables."
+	   << endl;
+    }
+  }
+
+  // Compute primal feasible solutions only if it is a multi-dense graph.
+  // TODO: allow passing a function argument for customizing the rounding
+  // in the client side.
+  bool compute_primal_obj = multi_graph;
+  vector<double> posteriors_feasible;
+  vector<double> additional_posteriors_feasible;  
 
   // Compute extra score to account for variables that are not connected 
   // to any factor.
@@ -1038,12 +1133,15 @@ int FactorGraph::RunAD3(double lower_bound,
     // have passed, compute the dual.
     bool compute_dual = false;
     bool compute_primal_rel = false;
+    bool compute_primal = false;
     // TODO: && dual_residual < residual_threshold?
     if (primal_residual < residual_threshold) {
       compute_dual = true;
       compute_primal_rel = true;
+      compute_primal = compute_primal_obj;
     } else if (t > 0 && 0 == (t % num_iterations_compute_dual)) {
       compute_dual = true;
+      compute_primal = compute_primal_obj;
     }
 
     // Compute dual value.
@@ -1093,9 +1191,33 @@ int FactorGraph::RunAD3(double lower_bound,
 
     // Compute primal objective.
     double primal_obj = -1e100;
-    bool compute_primal = false;
+    //bool compute_primal = false;
     if (compute_primal) {
-      //TODO
+      if (multi_graph) {
+        posteriors_feasible.resize(posteriors->size());
+        additional_posteriors_feasible.resize(additional_posteriors->size());
+        for (int i = 0; i < variables_.size(); ++i) {
+          posteriors_feasible[i] = (*posteriors)[i];
+        }
+	for (int i = 0; i < additional_log_potentials.size(); ++i) {
+	  additional_posteriors_feasible[i] = (*additional_posteriors)[i];
+	}
+
+        RoundMultiDensePrimalVariables(additional_factor_offsets,
+				       &posteriors_feasible,
+				       &additional_posteriors_feasible);
+
+        primal_obj = 0.0;
+        for (int i = 0; i < variables_.size(); ++i) {
+          primal_obj += posteriors_feasible[i] * variables_[i]->GetLogPotential();
+        }
+        // If there are higher order potentials (e.g. for pairs) 
+        // should loop here for factors to 
+        // add their contribution
+	for (int i = 0; i < additional_log_potentials.size(); ++i) {
+	  primal_obj += additional_posteriors_feasible[i] * additional_log_potentials[i];
+	}
+      }
       if (primal_obj > primal_obj_best) {
         primal_obj_best = primal_obj;
       }
