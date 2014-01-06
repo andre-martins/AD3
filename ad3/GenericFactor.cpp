@@ -549,7 +549,8 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
       double alpha = 1.0;
       for (int i = 0; i < active_set_.size(); ++i) {
         assert(distribution_[i] >= -1e-12);
-        if (z[i] >= distribution_[i] - 1e-12) continue;
+        //if (z[i] >= distribution_[i] - 1e-12) continue;
+        if (z[i] >= distribution_[i]) continue;
         if (z[i] < 0) exist_blocking = true;
         double tmp = distribution_[i] / (distribution_[i] - z[i]);
         if (blocking < 0 || tmp < alpha) {
