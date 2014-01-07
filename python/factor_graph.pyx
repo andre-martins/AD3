@@ -36,6 +36,9 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
     cdef cppclass FactorGraph:
         FactorGraph()
         void SetVerbosity(int verbosity)
+        void StorePrimalDualSequences(bool store)
+        void GetPrimalDualSequences(vector[double]* primal_obj_sequence,
+                                    vector[double]* dual_obj_sequence)
         void SetEtaPSDD(double eta)
         void SetMaxIterationsPSDD(int max_iterations)
         int SolveLPMAPWithPSDD(vector[double]* posteriors,
@@ -381,6 +384,23 @@ cdef class PFactorGraph:
 
     def set_verbosity(self, int verbosity):
         self.thisptr.SetVerbosity(verbosity)
+
+    def store_primal_dual_sequences(self, bool store):
+        self.thisptr.StorePrimalDualSequences(store)
+
+    def get_primal_dual_sequences(self):
+        cdef vector[double] primal_obj_sequence
+        cdef vector[double] dual_obj_sequence
+        self.thisptr.GetPrimalDualSequences(&primal_obj_sequence,
+                                            &dual_obj_sequence)
+        p_primal_obj_sequence, p_dual_obj_sequence = [], []
+        cdef size_t i
+        for i in range(primal_obj_sequence.size()):
+            p_primal_obj_sequence.append(primal_obj_sequence[i])
+        for i in range(dual_obj_sequence.size()):
+            p_dual_obj_sequence.append(dual_obj_sequence[i])
+
+        return p_primal_obj_sequence, p_dual_obj_sequence
 
     def create_binary_variable(self):
         cdef BinaryVariable * variable =  self.thisptr.CreateBinaryVariable()

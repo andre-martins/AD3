@@ -960,7 +960,7 @@ int FactorGraph::RunAD3(double lower_bound,
   int num_iterations_compute_dual = 50;
   bool multi_graph = IsMultiDenseFactorGraph();
   if (multi_graph) {
-    if (verbosity_ > 0) { // 1
+    if (verbosity_ > 1) {
       cout << "Factor graph contains only dense factors with multi-valued variables."
 	   << endl;
     }
@@ -971,7 +971,13 @@ int FactorGraph::RunAD3(double lower_bound,
   // in the client side.
   bool compute_primal_obj = multi_graph;
   vector<double> posteriors_feasible;
-  vector<double> additional_posteriors_feasible;  
+  vector<double> additional_posteriors_feasible;
+
+  if (store_primal_dual_sequences_) {
+    primal_obj_sequence_.clear();
+    dual_obj_sequence_.clear();
+    num_iterations_compute_dual = 1;
+  }
 
   // Compute extra score to account for variables that are not connected 
   // to any factor.
@@ -1139,7 +1145,7 @@ int FactorGraph::RunAD3(double lower_bound,
       compute_dual = true;
       compute_primal_rel = true;
       compute_primal = compute_primal_obj;
-    } else if (t > 0 && 0 == (t % num_iterations_compute_dual)) {
+    } else if (0 == ((t + 1) % num_iterations_compute_dual)) {
       compute_dual = true;
       compute_primal = compute_primal_obj;
     }
@@ -1255,6 +1261,11 @@ int FactorGraph::RunAD3(double lower_bound,
              << "\tChanged eta = " << (eta_changed? "true" : "false") 
              << "\tTime = " << ((double) diff_ms(end,start))/1000.0 << " sec."
              << endl; 
+      }
+      
+      if (store_primal_dual_sequences_) {
+	primal_obj_sequence_.push_back(primal_obj);
+	dual_obj_sequence_.push_back(dual_obj);
       }
     }
     //double gap = dual_obj_best - primal_rel_obj_best;

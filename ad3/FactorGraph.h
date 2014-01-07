@@ -35,6 +35,7 @@ class FactorGraph {
   FactorGraph() {
     verbosity_ = 2;
     num_links_ = 0;
+    store_primal_dual_sequences_ = false;
     ResetParametersAD3();
     ResetParametersPSDD();
   }
@@ -302,6 +303,10 @@ class FactorGraph {
       variables.insert(variables.end(),
                        multi_variables[i]->GetStates().begin(),
                        multi_variables[i]->GetStates().end());
+      // TODO: link also the factor to the multi-variables.
+      // Note: Dense factors that are created externally (i.e. not via
+      // CreateFactorDense(...)) won't let their multi_variables be linked...
+      multi_variables[i]->LinkToFactor(factor);
     }
     vector<bool> negated;
     DeclareFactor(factor, variables, negated, owned_by_graph);
@@ -351,7 +356,6 @@ class FactorGraph {
         if (factors_[j]->type() == FactorTypes::FACTOR_XOR) {
           for (int k = 0; k < factors_[j]->Degree(); ++k) {
             if (factors_[j]->GetVariable(k)->Degree() > 1) {
-	      std::cout << "degree = " << factors_[j]->GetVariable(k)->Degree() << endl;
               return false;
             }
           }
@@ -394,6 +398,16 @@ class FactorGraph {
     for (int i = 0; i < GetNumFactors(); ++i) {
       factors_[i]->Print(stream);
     }
+  }
+
+  // Get/set options/parameters for all algorithms.
+  void StorePrimalDualSequences(bool store) {
+    store_primal_dual_sequences_ = store;
+  }
+  void GetPrimalDualSequences(vector<double> *primal_obj_sequence,
+			      vector<double> *dual_obj_sequence) {
+    *primal_obj_sequence = primal_obj_sequence_;
+    *dual_obj_sequence = dual_obj_sequence_;
   }
 
   // Set options of AD3/PSDD algorithms.
@@ -493,6 +507,11 @@ class FactorGraph {
   // Verbosity level. 0 only displays error/warning messages, 
   // 1 displays info messages, >1 displays additional info.
   int verbosity_;
+
+  // Options/parameters for all algorithms.
+  bool store_primal_dual_sequences_;
+  vector<double> primal_obj_sequence_;
+  vector<double> dual_obj_sequence_;
 
   // Parameters for AD3:
   int ad3_max_iterations_; // Maximum number of iterations.
