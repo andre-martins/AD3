@@ -21,6 +21,8 @@
 
 #include "Factor.h"
 
+#define COUNT_ORACLE_CALLS
+
 namespace AD3 {
 
 // This must be implemented by the user-defined factor.
@@ -33,6 +35,10 @@ class GenericFactor : public Factor {
   GenericFactor() {
     verbosity_ = 2;
     num_max_iterations_QP_ = 10;
+#ifdef COUNT_ORACLE_CALLS
+    count_oracle_calls_ = false;
+    num_oracle_calls_ = 0;
+#endif
   }
 
   // Note: every class that derives from GenericFactor must
@@ -156,12 +162,29 @@ class GenericFactor : public Factor {
                        vector<double> *variable_posteriors,
                        vector<double> *additional_posteriors);
 
+#ifdef COUNT_ORACLE_CALLS
+  void CountOracleCalls(bool count=true) {
+    count_oracle_calls_ = count;
+  }
+  int GetNumOracleCalls() {
+    return num_oracle_calls_;
+  }
+  void SetNumOracleCalls(int num_oracle_calls=0) {
+    num_oracle_calls_ = num_oracle_calls;
+  }
+#endif
+
  protected:
   vector<Configuration> active_set_;
   vector<double> distribution_;
   vector<double> inverse_A_;
   int num_max_iterations_QP_; // Initialize to 10.
   int verbosity_; // Verbosity level.
+
+#ifdef COUNT_ORACLE_CALLS
+  bool count_oracle_calls_;
+  int num_oracle_calls_;
+#endif
 };
 
 } // namespace AD3

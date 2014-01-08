@@ -39,6 +39,7 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
         void StorePrimalDualSequences(bool store)
         void GetPrimalDualSequences(vector[double]* primal_obj_sequence,
                                     vector[double]* dual_obj_sequence)
+        void GetNumOracleCallsSequence(vector[int]* num_oracle_calls_sequence)
         void ConvertToBinaryFactorGraph(FactorGraph* binary_factor_graph)
         void SetEtaPSDD(double eta)
         void SetMaxIterationsPSDD(int max_iterations)
@@ -48,6 +49,7 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
         void SetEtaAD3(double eta)
         void AdaptEtaAD3(bool adapt)
         void SetMaxIterationsAD3(int max_iterations)
+        void EnableCachingAD3(bool enable)
         void FixMultiVariablesWithoutFactors()
         int SolveLPMAPWithAD3(vector[double]* posteriors,
                               vector[double]* additional_posteriors,
@@ -407,6 +409,16 @@ cdef class PFactorGraph:
 
         return p_primal_obj_sequence, p_dual_obj_sequence
 
+    def get_num_oracle_calls_sequence(self):
+        cdef vector[int] num_oracle_calls_sequence
+        self.thisptr.GetNumOracleCallsSequence(&num_oracle_calls_sequence)
+        p_num_oracle_calls_sequence = []
+        cdef size_t i
+        for i in range(num_oracle_calls_sequence.size()):
+            p_num_oracle_calls_sequence.append(num_oracle_calls_sequence[i])
+
+        return p_num_oracle_calls_sequence
+
     def convert_to_binary_factor_graph(self):
         cdef FactorGraph * binary_factor_graph = new FactorGraph()
         self.thisptr.ConvertToBinaryFactorGraph(binary_factor_graph)
@@ -528,6 +540,9 @@ cdef class PFactorGraph:
 
     def set_max_iterations_ad3(self, int max_iterations):
         self.thisptr.SetMaxIterationsAD3(max_iterations)
+
+    def enable_caching_ad3(self, bool enable):
+        self.thisptr.EnableCachingAD3(enable)
 
     def solve_lp_map_ad3(self):
         cdef vector[double] posteriors

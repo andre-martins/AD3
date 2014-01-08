@@ -233,7 +233,6 @@ class Factor {
   vector<double> additional_log_potentials_last_;
   vector<double> variable_posteriors_last_;
   vector<double> additional_posteriors_last_;
-
 };
 
 // XOR factor. Only configurations with exactly one 1 are legal.

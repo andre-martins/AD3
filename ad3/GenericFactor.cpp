@@ -330,6 +330,9 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
              additional_log_potentials,
              configuration,
              &value);
+#ifdef COUNT_ORACLE_CALLS
+    if (count_oracle_calls_) ++num_oracle_calls_;
+#endif
     active_set_.push_back(configuration);
     distribution_.push_back(1.0);
 
@@ -400,6 +403,9 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
                additional_log_potentials,
                configuration,
                &value);
+#ifdef COUNT_ORACLE_CALLS
+      if (count_oracle_calls_) ++num_oracle_calls_;
+#endif
 
       double very_small_threshold = 1e-9;
       if (value <= tau + very_small_threshold) { // value <= tau.

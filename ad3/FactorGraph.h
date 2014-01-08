@@ -409,6 +409,11 @@ class FactorGraph {
     *primal_obj_sequence = primal_obj_sequence_;
     *dual_obj_sequence = dual_obj_sequence_;
   }
+#ifdef COUNT_ORACLE_CALLS
+  void GetNumOracleCallsSequence(vector<int> *num_oracle_calls_sequence) {
+    *num_oracle_calls_sequence = num_oracle_calls_sequence_;
+  }
+#endif
 
   // Set options of AD3/PSDD algorithms.
   void SetMaxIterationsAD3(int max_iterations) { 
@@ -419,6 +424,7 @@ class FactorGraph {
   void SetResidualThresholdAD3(double threshold) { 
     ad3_residual_threshold_ = threshold; 
   }
+  void EnableCachingAD3(bool enable=true) { ad3_enable_caching_ = enable; }
   void SetMaxIterationsPSDD(int max_iterations) { 
     psdd_max_iterations_ = max_iterations;
   }
@@ -466,6 +472,7 @@ class FactorGraph {
     ad3_adapt_eta_ = true;
     ad3_max_iterations_ = 1000;
     ad3_residual_threshold_ = 1e-6;
+    ad3_enable_caching_ = true;
   }
 
   void ResetParametersPSDD() {
@@ -512,6 +519,9 @@ class FactorGraph {
   bool store_primal_dual_sequences_;
   vector<double> primal_obj_sequence_;
   vector<double> dual_obj_sequence_;
+#ifdef COUNT_ORACLE_CALLS
+  vector<int> num_oracle_calls_sequence_;
+#endif
 
   // Parameters for AD3:
   int ad3_max_iterations_; // Maximum number of iterations.
@@ -521,6 +531,8 @@ class FactorGraph {
   bool ad3_adapt_eta_; 
   // Threshold for primal/dual residuals.
   double ad3_residual_threshold_;
+  // Allow caching the subproblems.
+  bool ad3_enable_caching_; 
 
   // Parameters for PSDD:
   int psdd_max_iterations_; // Maximum number of iterations.

@@ -476,7 +476,7 @@ int FactorGraph::RunPSDD(double lower_bound,
   vector<bool> variable_is_active(variables_.size(), false);
   int num_iterations_reset = 50;
   double cache_tolerance = 1e-12;
-  bool caching = true;
+  bool caching = ad3_enable_caching_;
 
   // Optimization status.
   bool optimal = false;
@@ -976,6 +976,9 @@ int FactorGraph::RunAD3(double lower_bound,
   if (store_primal_dual_sequences_) {
     primal_obj_sequence_.clear();
     dual_obj_sequence_.clear();
+#ifdef COUNT_ORACLE_CALLS
+    num_oracle_calls_sequence_.clear();
+#endif
     num_iterations_compute_dual = 1;
   }
 
@@ -1022,6 +1025,17 @@ int FactorGraph::RunAD3(double lower_bound,
   maps_.resize(num_links_, 0.0);
   maps_av_.clear();
   maps_av_.resize(variables_.size(), 0.5);
+
+#ifdef COUNT_ORACLE_CALLS
+  if (store_primal_dual_sequences_) {
+    for (int j = 0; j < factors_.size(); ++j) {
+      if (factors_[j]->IsGeneric()) {
+	static_cast<GenericFactor*>(factors_[j])->SetNumOracleCalls(0);
+	static_cast<GenericFactor*>(factors_[j])->CountOracleCalls(true);
+      }
+    }
+  }
+#endif
 
   double eta = ad3_eta_;
   for (t = 0; t < ad3_max_iterations_; ++t) {
@@ -1242,6 +1256,19 @@ int FactorGraph::RunAD3(double lower_bound,
     if (primal_rel_obj_best < primal_rel_obj) {
       primal_rel_obj_best = primal_rel_obj; 
     }
+
+#ifdef COUNT_ORACLE_CALLS
+    int num_oracle_calls = 0;
+    if (store_primal_dual_sequences_) {
+      for (int j = 0; j < factors_.size(); ++j) {
+	if (factors_[j]->type() == FactorTypes::FACTOR_GENERIC) {
+	  num_oracle_calls +=
+	    static_cast<GenericFactor*>(factors_[j])->GetNumOracleCalls();
+	}
+      }
+    }
+#endif	
+
     if (compute_dual) {
       gettimeofday(&end, NULL);
       if (verbosity_ > 1) { 
@@ -1259,6 +1286,9 @@ int FactorGraph::RunAD3(double lower_bound,
           static_cast<double>(factors_.size())
              << "\teta = " << eta
              << "\tChanged eta = " << (eta_changed? "true" : "false") 
+#ifdef COUNT_ORACLE_CALLS
+             << "\tOracle calls = " << num_oracle_calls
+#endif
              << "\tTime = " << ((double) diff_ms(end,start))/1000.0 << " sec."
              << endl; 
       }
@@ -1266,6 +1296,9 @@ int FactorGraph::RunAD3(double lower_bound,
       if (store_primal_dual_sequences_) {
 	primal_obj_sequence_.push_back(primal_obj);
 	dual_obj_sequence_.push_back(dual_obj);
+#ifdef COUNT_ORACLE_CALLS
+	num_oracle_calls_sequence_.push_back(num_oracle_calls);
+#endif	
       }
     }
     //double gap = dual_obj_best - primal_rel_obj_best;
