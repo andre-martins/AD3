@@ -52,7 +52,7 @@ def generate_potts_grid(grid_size, num_states, edge_coupling, toroidal=True):
 
 def build_node_to_edges_map(num_nodes, edges):
     num_edges = len(edges)
-    node_to_edges = [([], []) for i in xrange(num_nodes)]
+    node_to_edges = [[] for i in xrange(num_nodes)]
     for j in xrange(num_edges):
         n1 = edges[j][0]
         n2 = edges[j][1]
@@ -62,15 +62,25 @@ def build_node_to_edges_map(num_nodes, edges):
     return node_to_edges
 
 
+def log_norm(v, p):
+    # Computes u = log(||exp(v)||_p) = (1/p) log (\sum_i exp(vi*p)) = v_max + (1/p) log (\sum_i exp((vi-v_max)*p))
+    m = np.max(v)
+    if p == np.inf:
+        return m
+    else:
+        return m + (1/p)*np.log(np.sum(np.exp((v-m)*p)))
+
+
 def solve_max_marginals(scores, additional_scores):
     num_states1 = len(scores[0])
     num_states2 = len(scores[1])
     p = additional_scores.copy()
     for k in xrange(num_states1):
         for l in xrange(num_states2):
-            p[k,l] += scores[k] + scores[l]
+            p[k,l] += scores[0][k] + scores[1][l]
 
-    max_marginals = [np.zeros(k), np.zeros(l)]
+    max_marginals = [np.zeros(num_states1),
+                     np.zeros(num_states2)]
 
     # Compute max marginals for the first variable.
     for k in xrange(num_states1):
@@ -89,10 +99,13 @@ def solve_map(scores, additional_scores):
     p = additional_scores.copy()
     for k in xrange(num_states1):
         for l in xrange(num_states2):
-            p[k,l] += scores[k] + scores[l]
+            p[k,l] += scores[0][k] + scores[1][l]
     k, l = np.unravel_index(p.argmax(), p.shape)
     value = p[k,l]
-    posteriors = [np.zeros(k), np.zeros(l)]
+    posteriors = [np.zeros(num_states1),
+                  np.zeros(num_states2)]
+    additional_posteriors = np.zeros((num_states1,
+                                      num_states2))
     posteriors[0][k] = 1.0
     posteriors[1][l] = 1.0
     additional_posteriors[k,l] = 1.0
@@ -206,11 +219,125 @@ def run_gurobi(edges, node_potentials, edge_potentials, relax=True):
     return value
 
 
+def run_norm_product(edges, node_potentials, edge_potentials, num_iterations=1000, temperature=0.001):
+    num_nodes = len(node_potentials)
+    num_edges = len(edges)
+    c_alphas = np.ones(num_edges)
+    c_i = np.zeros(num_nodes)
+    c_i_alphas = np.zeros((num_edges,2))
+    posteriors = [[] for i in xrange(num_nodes)]
+    edge_posteriors = [[] for j in xrange(num_edges)]
+
+    m_messages = []
+    n_messages = []    
+    for j in xrange(num_edges):
+        n1 = edges[j][0]
+        n2 = edges[j][1]
+        num_states1, num_states2 = np.shape(edge_potentials[j])
+        m_messages.append([])
+        m_messages[j].append(np.zeros(num_states1))
+        m_messages[j].append(np.zeros(num_states2))
+        n_messages.append([])
+        n_messages[j].append(np.zeros(num_states1))
+        n_messages[j].append(np.zeros(num_states2))
+
+    node_to_edges  = build_node_to_edges_map(num_nodes, edges)
+
+    c_i_hat = c_i.copy()
+    for i in xrange(num_nodes):
+        c_i_hat[i] += sum([c_alphas[e] for e, m in node_to_edges[i]])
+
+    dual_obj_seq = np.zeros(num_iterations)
+    primal_obj_seq = np.zeros(num_iterations)
+    for t in xrange(num_iterations):
+        for i in xrange(num_nodes):
+            # Update m-messages.
+            num_states = len(node_potentials[i])
+            for e, m in node_to_edges[i]:
+                scores = [n_messages[e][0], n_messages[e][1]]
+                additional_scores = edge_potentials[e]
+                for k in xrange(num_states):
+                    if m == 0:
+                        v = scores[1] + additional_scores[k, :]
+                    else:
+                        v = scores[0] + additional_scores[:, k]
+                    m_messages[e][m][k] = \
+                        log_norm(v, 1.0/(temperature*c_alphas[e]))
+
+            # Update n-messages.
+            score = node_potentials[i].copy()
+            for e, m in node_to_edges[i]:
+                score += m_messages[e][m]
+            for e, m in node_to_edges[i]:
+                n_messages[e][m] = (score * (c_alphas[e]/c_i_hat[i])) - m_messages[e][m]
+                value = np.mean(n_messages[e][m])
+                n_messages[e][m] -= value
+
+        # Compute beliefs.
+        for i in xrange(num_nodes):
+            beliefs = node_potentials[i].copy()
+            for e, m in node_to_edges[i]:
+                beliefs += m_messages[e][m]
+            beliefs *= (1.0/(temperature*c_i_hat[i]))
+            value = np.max(beliefs)
+            value += np.log(np.sum(np.exp(beliefs - value)))
+            beliefs = np.exp(beliefs - value)
+            posteriors[i] = beliefs
+
+        # Compute dual objective.
+        dual_obj = 0.0
+        dual_obj2 = 0.0
+        for e in xrange(num_edges):
+            n1 = edges[j][0]
+            n2 = edges[j][1]
+            num_states1, num_states2 = np.shape(edge_potentials[j])
+            v = edge_potentials[e].copy()
+            for k in xrange(num_states1):
+                for l in xrange(num_states2):
+                    v[k,l] += n_messages[e][0][k] + n_messages[e][1][l]
+            dual_obj += log_norm(v, 1.0/(temperature * c_alphas[e]))
+            dual_obj2 += log_norm(v, np.inf)
+        for i in xrange(num_nodes):
+            v = node_potentials[i].copy()
+            for e, m in node_to_edges[i]:
+                v -= n_messages[e][m]
+            if c_i[i] == 0:
+                dual_obj += log_norm(v, np.inf)
+            else:
+                dual_obj += log_norm(v, 1.0/(temperature * c_i[i]))
+            dual_obj2 += log_norm(v, np.inf)
+
+        dual_obj = dual_obj2
+
+        # Compute primal objective.
+        primal_obj = 0.0;
+        p_int = []
+        for i in xrange(num_nodes):
+            k = np.argmax(posteriors[i])
+            p_int.append(k)
+            primal_obj += node_potentials[i][k]
+        for j in xrange(num_edges):
+            n1 = edges[j][0]
+            n2 = edges[j][1]
+            k = p_int[n1]
+            l = p_int[n2]
+            primal_obj += edge_potentials[j][k,l]
+
+        #pdb.set_trace()
+        if (t+1) % 100 == 0:
+            print 'Iteration:', t, 'Dual obj:', dual_obj, 'Primal obj:', primal_obj
+
+        dual_obj_seq[t] = dual_obj
+        primal_obj_seq[t] = primal_obj
+
+    return dual_obj_seq, primal_obj_seq
+
+
 def run_mplp(edges, node_potentials, edge_potentials, num_iterations=1000):
     num_nodes = len(node_potentials)
     num_edges = len(edges)
-    posteriors = .5 * np.ones(num_nodes)
-    edge_posteriors = np.zeros(num_edges)
+    posteriors = [[] for i in xrange(num_nodes)]
+    edge_posteriors = [[] for j in xrange(num_edges)]
 
     gammas = []
     deltas = []    
@@ -239,23 +366,23 @@ def run_mplp(edges, node_potentials, edge_potentials, num_iterations=1000):
             # Update deltas.
             num_states = len(node_potentials[n1])
             for k in xrange(num_states):
-                gamma_tot = sum([gammas[e,m][k] for e, m in node_to_edges[n1]])
+                gamma_tot = sum([gammas[e][m][k] for e, m in node_to_edges[n1]])
                 for e, m in node_to_edges[n1]:
-                    deltas[e,m][k] = node_potentials[n1] + gamma_tot - gammas[e,m][k]
+                    deltas[e][m][k] = node_potentials[n1][k] + gamma_tot - gammas[e][m][k]
             num_states = len(node_potentials[n2])
             for k in xrange(num_states):
-                gamma_tot = sum([gammas[e,m][k] for e, m in node_to_edges[n2]])
+                gamma_tot = sum([gammas[e][m][k] for e, m in node_to_edges[n2]])
                 for e, m in node_to_edges[n2]:
-                    deltas[e,m][k] = node_potentials[n2] + gamma_tot - gammas[e,m][k]
+                    deltas[e][m][k] = node_potentials[n2][k] + gamma_tot - gammas[e][m][k]
 
             # Compute max-marginals and update gammas.
-            scores = [deltas[j,0], deltas[j,1]]
+            scores = [deltas[j][0], deltas[j][1]]
             additional_scores = edge_potentials[j]
             max_marginals = solve_max_marginals(scores, additional_scores)
 
             factor_degree = 2
-            gammas[j,0] = max_marginals[0] / float(factor_degree) - deltas[j,0]
-            gammas[j,1] = max_marginals[1] / float(factor_degree) - deltas[j,1]
+            gammas[j][0] = max_marginals[0] / float(factor_degree) - deltas[j][0]
+            gammas[j][1] = max_marginals[1] / float(factor_degree) - deltas[j][1]
 
         # Compute dual objective.
         # First, get the contribution of the node variables to the dual objective.
@@ -264,7 +391,7 @@ def run_mplp(edges, node_potentials, edge_potentials, num_iterations=1000):
             num_states = len(node_potentials[i])
             vals = np.zeros(num_states)
             for k in xrange(num_states):
-                gamma_tot = sum([gammas[e,m][k] for e, m in node_to_edges[i]])
+                gamma_tot = sum([gammas[e][m][k] for e, m in node_to_edges[i]])
                 vals[k] = gamma_tot + node_potentials[i][k]
             k = np.argmax(vals)
             posteriors[i] = np.zeros(num_states)
@@ -273,7 +400,7 @@ def run_mplp(edges, node_potentials, edge_potentials, num_iterations=1000):
             
         # Now, get the contribution of the factors to the dual objective.
         for j in xrange(num_edges):
-            scores = [-gammas[j,0], -gammas[j,1]]
+            scores = [-gammas[j][0], -gammas[j][1]]
             additional_scores = edge_potentials[j]
             local_posteriors, local_additional_posteriors, value = \
                 solve_map(scores, additional_scores)
@@ -293,7 +420,100 @@ def run_mplp(edges, node_potentials, edge_potentials, num_iterations=1000):
             l = p_int[n2]
             primal_obj += edge_potentials[j][k,l]
 
-        if t % 100 == 0:
+        if (t+1) % 100 == 0:
+            print 'Iteration:', t, 'Dual obj:', dual_obj, 'Primal obj:', primal_obj
+
+        dual_obj_seq[t] = dual_obj
+        primal_obj_seq[t] = primal_obj
+
+    return dual_obj_seq, primal_obj_seq
+
+
+def run_psdd(edges, node_potentials, edge_potentials, num_iterations=1000, eta=0.1):
+    num_nodes = len(node_potentials)
+    num_edges = len(edges)
+    posteriors = [[] for i in xrange(num_nodes)]
+    edge_posteriors = [[] for j in xrange(num_edges)]
+
+    p = [np.zeros(len(node_potentials[i])) for i in xrange(num_nodes)]
+    q = []
+    lambdas = []    
+    for j in xrange(num_edges):
+        n1 = edges[j][0]
+        n2 = edges[j][1]
+        num_states1, num_states2 = np.shape(edge_potentials[j])
+        q.append([])
+        q[j].append(np.zeros(num_states1))
+        q[j].append(np.zeros(num_states2))
+        lambdas.append([])
+        lambdas[j].append(np.zeros(num_states1))
+        lambdas[j].append(np.zeros(num_states2))
+
+    node_to_edges  = build_node_to_edges_map(num_nodes, edges)
+
+    dual_obj_prev = np.inf
+    num_times_increment = 0;
+
+    dual_obj_seq = np.zeros(num_iterations)
+    primal_obj_seq = np.zeros(num_iterations)
+    for t in xrange(num_iterations):
+        # Make updates and compute dual objective.
+        dual_obj = 0.0;
+        for j in xrange(num_edges):
+            n1 = edges[j][0]
+            n2 = edges[j][1]
+            d1 = len(node_to_edges[n1])
+            d2 = len(node_to_edges[n2])
+            scores = [node_potentials[n1] / float(d1) + lambdas[j][0],
+                      node_potentials[n2] / float(d2) + lambdas[j][1]]
+            additional_scores = edge_potentials[j]
+            posteriors, additional_posteriors, value = solve_map(scores, additional_scores)
+            dual_obj += value
+
+            q[j][0] = posteriors[0]
+            q[j][1] = posteriors[1]
+            edge_posteriors[j] = additional_posteriors
+
+        # Check if dual improved so that num_times_increment 
+        # can be incremented.
+        if dual_obj < dual_obj_prev:
+            num_times_increment += 1;
+        dual_obj_prev = dual_obj;
+
+        for i in xrange(num_nodes):
+            num_states = len(node_potentials[i])
+            for k in xrange(num_states):
+                p[i][k] = np.mean([q[e][m][k] for e,m in node_to_edges[i]])
+
+        eta_t = eta / np.sqrt(num_times_increment);
+        for j in xrange(num_edges):
+            n1 = edges[j][0]
+            n2 = edges[j][1]
+            lambdas[j][0] -= eta_t * (q[j][0] - p[n1])
+            lambdas[j][1] -= eta_t * (q[j][1] - p[n2])
+
+        # Compute relaxed primal objective.
+        primal_rel_obj = 0.0;
+        for i in xrange(num_nodes):
+            primal_rel_obj += np.sum(p[i] * node_potentials[i])
+        for j in xrange(num_edges):
+            primal_rel_obj += np.sum(edge_posteriors[j] * edge_potentials[j])
+
+        # Compute primal objective.
+        primal_obj = 0.0;
+        p_int = []
+        for i in xrange(num_nodes):
+            k = np.argmax(p[i])
+            p_int.append(k)
+            primal_obj += node_potentials[i][k]
+        for j in xrange(num_edges):
+            n1 = edges[j][0]
+            n2 = edges[j][1]
+            k = p_int[n1]
+            l = p_int[n2]
+            primal_obj += edge_potentials[j][k,l]
+
+        if (t+1) % 100 == 0:
             print 'Iteration:', t, 'Dual obj:', dual_obj, 'Primal rel obj:', primal_rel_obj, 'Primal obj:', primal_obj
 
         dual_obj_seq[t] = dual_obj
@@ -302,7 +522,8 @@ def run_mplp(edges, node_potentials, edge_potentials, num_iterations=1000):
     return dual_obj_seq, primal_obj_seq
 
 
-def run_ad3(edges, node_potentials, edge_potentials, num_iterations=1000, eta=1.0):
+def run_ad3(edges, node_potentials, edge_potentials, num_iterations=1000, eta=1.0,
+            convert_to_binary=True):
     factor_graph = fg.PFactorGraph()
     multi_variables = []
     num_nodes = len(node_potentials)
@@ -323,14 +544,20 @@ def run_ad3(edges, node_potentials, edge_potentials, num_iterations=1000, eta=1.
         factor_graph.create_factor_dense(edge_variables,
                                          edge_potentials[j].ravel().tolist())
 
+    if convert_to_binary:
+        factor_graph = factor_graph.convert_to_binary_factor_graph()
     factor_graph.store_primal_dual_sequences(True)
     factor_graph.set_eta_ad3(eta)
     factor_graph.adapt_eta_ad3(False)
 #    factor_graph.adapt_eta_ad3(True)
     factor_graph.set_max_iterations_ad3(num_iterations)
+    factor_graph.set_verbosity(0)
     value, marginals, edge_marginals, solver_status = \
         factor_graph.solve_lp_map_ad3()
     primal_obj_seq, dual_obj_seq = factor_graph.get_primal_dual_sequences()
+    if convert_to_binary:
+        for t in xrange(len(primal_obj_seq)):
+            primal_obj_seq[t] = 0.0
 
     return dual_obj_seq, primal_obj_seq
 
@@ -389,10 +616,10 @@ if __name__ == "__main__":
     num_iterations = 1000
     
     use_mplp = True
-    use_np = False
+    use_np = True
     use_accdd = False
     use_sdd = False
-    use_psdd = False
+    use_psdd = True
     use_ad3 = True
     use_gurobi = True
     

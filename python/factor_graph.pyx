@@ -39,6 +39,7 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
         void StorePrimalDualSequences(bool store)
         void GetPrimalDualSequences(vector[double]* primal_obj_sequence,
                                     vector[double]* dual_obj_sequence)
+        void ConvertToBinaryFactorGraph(FactorGraph* binary_factor_graph)
         void SetEtaPSDD(double eta)
         void SetMaxIterationsPSDD(int max_iterations)
         int SolveLPMAPWithPSDD(vector[double]* posteriors,
@@ -376,11 +377,15 @@ cdef class PFactorGeneralTreeCounts(PFactor):
 
 cdef class PFactorGraph:
     cdef FactorGraph *thisptr
-    def __cinit__(self):
-        self.thisptr = new FactorGraph()
+    cdef bool allocate
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+            self.thisptr = new FactorGraph()
 
     def __dealloc__(self):
-        del self.thisptr
+        if self.allocate:
+            del self.thisptr
 
     def set_verbosity(self, int verbosity):
         self.thisptr.SetVerbosity(verbosity)
@@ -402,8 +407,15 @@ cdef class PFactorGraph:
 
         return p_primal_obj_sequence, p_dual_obj_sequence
 
+    def convert_to_binary_factor_graph(self):
+        cdef FactorGraph * binary_factor_graph = new FactorGraph()
+        self.thisptr.ConvertToBinaryFactorGraph(binary_factor_graph)
+        p_binary_factor_graph = PFactorGraph(allocate=False)
+        p_binary_factor_graph.thisptr = binary_factor_graph
+        return p_binary_factor_graph
+        
     def create_binary_variable(self):
-        cdef BinaryVariable * variable =  self.thisptr.CreateBinaryVariable()
+        cdef BinaryVariable * variable = self.thisptr.CreateBinaryVariable()
         pvariable = PBinaryVariable(allocate=False)
         pvariable.thisptr = variable
         return pvariable
