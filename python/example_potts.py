@@ -1058,17 +1058,19 @@ if __name__ == "__main__":
 #        plt.hold(True)
     
     
-    plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+#    plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    plt.legend(loc=1) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.ylabel('Objective value')
     plt.xlabel('Number of iterations')
     
     if print_primal:
         ymin = np.max(primal_obj_seq_ad3) - 10.0
     else:
-        ymin = np.min(dual_obj_seq_ad3) - 100.0
-    ymax = np.min(dual_obj_seq_ad3) + 150.0
+        ymin = np.min(dual_obj_seq_ad3) - 20.0
+    ymax = np.min(dual_obj_seq_ad3) + 200.0
     
     plt.ylim((ymin, ymax))
+    plt.xlim((0, num_iterations))
     plt.suptitle('Edge coupling: ' + str(edge_coupling))
     
     #pdb.set_trace()
