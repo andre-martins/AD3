@@ -1042,6 +1042,8 @@ if __name__ == "__main__":
         grid_size = int(sys.argv[2])
         edge_couplings = [float(val) for val in sys.argv[3:]]
 
+    #pdb.set_trace()
+    plt.ion()
     fig = plt.figure()
     #plt.rc('text', usetex=True)
     #plt.rc('font', family='sans-serif')
@@ -1207,15 +1209,17 @@ if __name__ == "__main__":
         
         if ind_run == 0:
             plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            plt.ylabel('Objective value')
-            plt.xlabel('Number of iterations')
+            plt.ylabel('Objective value', fontsize=16)
+            plt.xlabel('Number of iterations', fontsize=16)
             #plt.title(r'Edge coupling: $\rho=' + str(edge_coupling) + '$')
         else:
             pass
             #plt.title(r'$\rho=' + str(edge_coupling) + '$')
 
-        plt.title('Edge coupling: ' + str(edge_coupling))
-        
+        plt.title('Edge coupling: ' + str(edge_coupling), fontsize=16)
+        plt.setp(plt.gca().get_xticklabels(), fontsize=14)        
+        plt.setp(plt.gca().get_yticklabels(), fontsize=14)        
+
         ymin = np.max(primal_obj_seq_ad3) - 10.0
         ymax = np.min(dual_obj_seq_ad3) + 10.0
         

@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 import matplotlib.pyplot as plt
 import pdb
+sys.path.append('..')
 import ad3.factor_graph as fg
 from gurobipy import *
 
@@ -1003,55 +1004,56 @@ if __name__ == "__main__":
         dual_obj_seq_ad3_binary, primal_obj_seq_ad3_binary = \
             trim_primal_dual_sequences(dual_obj_seq_ad3_binary, primal_obj_seq_ad3_binary, dual_value, primal_value)
 
+    plt.ion()
     fig = plt.figure()    
     if use_mplp:
-        plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'c-', label='MPLP dual', linewidth=2.0)
+        plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'co-', label='MPLP dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_np:
-        plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'b-', label='Norm-Product dual', linewidth=2.0)
+        plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'bv-', label='Norm-Product dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_psdd:
-        plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r-', label='PSDD dual', linewidth=2.0)
+        plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r^-', label='PSDD dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_sdd:
-        plt.plot(np.arange(len(dual_obj_seq_sdd)), dual_obj_seq_sdd, 'b-', label='SDD dual', linewidth=2.0)
+        plt.plot(np.arange(len(dual_obj_seq_sdd)), dual_obj_seq_sdd, 'b-', label='SDD dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_accdd:
-        plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm-', label='ACCDD dual', linewidth=2.0)
+        plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm*-', label='ACCDD dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_ad3:
-        #plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual (with active set method)', linewidth=2.0)
-        plt.plot(np.array(num_oracle_calls_seq_ad3)-1, dual_obj_seq_ad3, 'g-', label='AD3 dual (with active set method)', linewidth=2.0)
+        #plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual (with active set method)', linewidth=3.0)
+        plt.plot(np.array(num_oracle_calls_seq_ad3)-1, dual_obj_seq_ad3, 'gs-', label='AD3 dual (with active set method)', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_ad3_binary:
-        plt.plot(np.arange(len(dual_obj_seq_ad3_binary)), dual_obj_seq_ad3_binary, 'y-', label='AD3 dual (with binarization)', linewidth=2.0)
+        plt.plot(np.arange(len(dual_obj_seq_ad3_binary)), dual_obj_seq_ad3_binary, 'yD-', label='AD3 dual (with binarization)', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
         plt.hold(True)
     if use_gurobi:
-        plt.plot(np.arange(num_iterations), np.tile(dual_value, num_iterations), 'k:', label='Optimal dual', linewidth=2.0)
+        plt.plot(np.arange(num_iterations), np.tile(dual_value, num_iterations), 'k:', label='Optimal dual', linewidth=3.0)
         plt.hold(True)
 
     if print_primal:
         if use_mplp:
-            plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'c:', label='MPLP primal', linewidth=2.0)
+            plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'c:', label='MPLP primal', linewidth=3.0)
             plt.hold(True)
         if use_np:
-            plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'b:', label='Norm-Product primal', linewidth=2.0)
+            plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'b:', label='Norm-Product primal', linewidth=3.0)
             plt.hold(True)
         if use_psdd:
-            plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r:', label='PSDD primal', linewidth=2.0)
+            plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r:', label='PSDD primal', linewidth=3.0)
             plt.hold(True)
         if use_sdd:
-            plt.plot(np.arange(len(primal_obj_seq_sdd)), primal_obj_seq_sdd, 'b:', label='SDD primal', linewidth=2.0)
+            plt.plot(np.arange(len(primal_obj_seq_sdd)), primal_obj_seq_sdd, 'b:', label='SDD primal', linewidth=3.0)
             plt.hold(True)
         if use_accdd:
-            plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm:', label='ACCDD primal', linewidth=2.0)
+            plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm:', label='ACCDD primal', linewidth=3.0)
             plt.hold(True)
         if use_ad3:
-            #plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=2.0)
-            plt.plot(np.array(num_oracle_calls_seq_ad3)-1, primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=2.0)
+            #plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=3.0)
+            plt.plot(np.array(num_oracle_calls_seq_ad3)-1, primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=3.0)
             plt.hold(True)
         if use_ad3_binary:
-            plt.plot(np.arange(len(primal_obj_seq_ad3_binary)), primal_obj_seq_ad3_binary, 'y:', label='AD3 primal (with binarization)', linewidth=2.0)
+            plt.plot(np.arange(len(primal_obj_seq_ad3_binary)), primal_obj_seq_ad3_binary, 'y:', label='AD3 primal (with binarization)', linewidth=3.0)
             plt.hold(True)
 #    if use_gurobi:
 #        plt.plot(np.arange(num_iterations), np.tile(primal_value, num_iterations), 'k:', label='Optimal primal')
@@ -1060,8 +1062,8 @@ if __name__ == "__main__":
     
 #    plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.legend(loc=1) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    plt.ylabel('Objective value')
-    plt.xlabel('Number of iterations')
+    plt.ylabel('Objective value', fontsize=16)
+    plt.xlabel('Number of iterations', fontsize=16)
     
     if print_primal:
         ymin = np.max(primal_obj_seq_ad3) - 10.0
@@ -1071,7 +1073,9 @@ if __name__ == "__main__":
     
     plt.ylim((ymin, ymax))
     plt.xlim((0, num_iterations))
-    plt.suptitle('Edge coupling: ' + str(edge_coupling))
+    #plt.suptitle('Edge coupling: ' + str(edge_coupling))
+    plt.setp(plt.gca().get_xticklabels(), fontsize=14)        
+    plt.setp(plt.gca().get_yticklabels(), fontsize=14)        
     
     #pdb.set_trace()
     
