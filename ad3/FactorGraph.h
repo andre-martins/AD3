@@ -429,6 +429,7 @@ class FactorGraph {
     psdd_max_iterations_ = max_iterations;
   }
   void SetEtaPSDD(double eta) { psdd_eta_ = eta; }
+  void EnableCachingPSDD(bool enable=true) { psdd_enable_caching_ = enable; }
 
   int SolveLPMAPWithAD3(vector<double> *posteriors,
                         vector<double> *additional_posteriors,
@@ -478,6 +479,7 @@ class FactorGraph {
   void ResetParametersPSDD() {
     psdd_eta_ = 1.0;
     psdd_max_iterations_ = 1000;
+    psdd_enable_caching_ = true;
   }
 
   void CopyAdditionalLogPotentials(vector<double>* additional_log_potentials,
@@ -537,6 +539,8 @@ class FactorGraph {
   // Parameters for PSDD:
   int psdd_max_iterations_; // Maximum number of iterations.
   double psdd_eta_; // Initial stepsize.
+  // Allow caching the subproblems.
+  bool psdd_enable_caching_; 
 
   // Parameters for AD3 and PSDD:
   vector<double> lambdas_;

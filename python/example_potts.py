@@ -806,17 +806,17 @@ def run_ad3(edges, node_potentials, edge_potentials, num_iterations=1000, eta=1.
 #    factor_graph.adapt_eta_ad3(True)
     factor_graph.enable_caching_ad3(False)
     factor_graph.set_max_iterations_ad3(num_iterations)
-    #factor_graph.set_verbosity(0)
+    factor_graph.set_verbosity(0)
     value, marginals, edge_marginals, solver_status = \
         factor_graph.solve_lp_map_ad3()
     primal_obj_seq, dual_obj_seq = factor_graph.get_primal_dual_sequences()
     num_oracle_calls_seq = factor_graph.get_num_oracle_calls_sequence()
+    num_oracle_calls_seq = [float(val)/num_edges for val in num_oracle_calls_seq]
     if convert_to_binary:
         for t in xrange(len(primal_obj_seq)):
             primal_obj_seq[t] = 0.0
 
-    pdb.set_trace()
-    return dual_obj_seq, primal_obj_seq
+    return dual_obj_seq, primal_obj_seq, num_oracle_calls_seq
 
 
 def find_stepwise_best(dual_obj_seq, primal_obj_seq):
@@ -970,7 +970,7 @@ if __name__ == "__main__":
         #for eta in [0.001, 0.01, 0.1, 1.0, 5.0]:
         for eta in [1.0]: #[0.1]:
             print 'Running AD3 with eta =', eta, '.'
-            dual_obj_seq, primal_obj_seq = \
+            dual_obj_seq, primal_obj_seq, num_oracle_calls_seq = \
                 run_ad3(edges, node_potentials, edge_potentials, num_iterations, eta=eta)
             dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
             print 'Best dual:', dual_obj_seq[-1]
@@ -978,17 +978,19 @@ if __name__ == "__main__":
             if dual_obj_seq[-1] < dual_obj_seq_ad3[-1]:
                 dual_obj_seq_ad3 = dual_obj_seq
                 primal_obj_seq_ad3 = primal_obj_seq
+                num_oracle_calls_seq_ad3 = num_oracle_calls_seq
                 eta_ad3  = eta
         print 'Best eta AD3:', eta_ad3
         dual_obj_seq_ad3, primal_obj_seq_ad3 = \
             trim_primal_dual_sequences(dual_obj_seq_ad3, primal_obj_seq_ad3, dual_value, primal_value)
+        num_oracle_calls_seq_ad3 = num_oracle_calls_seq_ad3[:len(dual_obj_seq_ad3)]
 
     if use_ad3_binary:
         dual_obj_seq_ad3_binary  = [np.inf]
         for eta in [0.001, 0.01, 0.1, 1.0, 5.0]:
         #for eta in [0.1]: #[0.1]:
             print 'Running AD3 binary with eta =', eta, '.'
-            dual_obj_seq, primal_obj_seq = \
+            dual_obj_seq, primal_obj_seq, _ = \
                 run_ad3(edges, node_potentials, edge_potentials, num_iterations, eta=eta, convert_to_binary=True)
             dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
             print 'Best dual:', dual_obj_seq[-1]
@@ -1018,7 +1020,8 @@ if __name__ == "__main__":
         plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm-', label='ACCDD dual', linewidth=2.0)
         plt.hold(True)
     if use_ad3:
-        plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual (with active set method)', linewidth=2.0)
+        #plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual (with active set method)', linewidth=2.0)
+        plt.plot(np.array(num_oracle_calls_seq_ad3)-1, dual_obj_seq_ad3, 'g-', label='AD3 dual (with active set method)', linewidth=2.0)
         plt.hold(True)
     if use_ad3_binary:
         plt.plot(np.arange(len(dual_obj_seq_ad3_binary)), dual_obj_seq_ad3_binary, 'y-', label='AD3 dual (with binarization)', linewidth=2.0)
@@ -1044,7 +1047,8 @@ if __name__ == "__main__":
             plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm:', label='ACCDD primal', linewidth=2.0)
             plt.hold(True)
         if use_ad3:
-            plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=2.0)
+            #plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=2.0)
+            plt.plot(np.array(num_oracle_calls_seq_ad3)-1, primal_obj_seq_ad3, 'g:', label='AD3 primal (with active set method)', linewidth=2.0)
             plt.hold(True)
         if use_ad3_binary:
             plt.plot(np.arange(len(primal_obj_seq_ad3_binary)), primal_obj_seq_ad3_binary, 'y:', label='AD3 primal (with binarization)', linewidth=2.0)

@@ -476,7 +476,7 @@ int FactorGraph::RunPSDD(double lower_bound,
   vector<bool> variable_is_active(variables_.size(), false);
   int num_iterations_reset = 50;
   double cache_tolerance = 1e-12;
-  bool caching = ad3_enable_caching_;
+  bool caching = psdd_enable_caching_;
 
   // Optimization status.
   bool optimal = false;
@@ -942,7 +942,7 @@ int FactorGraph::RunAD3(double lower_bound,
   vector<bool> variable_is_active(variables_.size(), false);
   int num_iterations_reset = 50;
   double cache_tolerance = 1e-12;
-  bool caching = true; // true
+  bool caching = ad3_enable_caching_; // true
 
   // Optimization status.
   bool optimal = false;
@@ -1261,7 +1261,7 @@ int FactorGraph::RunAD3(double lower_bound,
     int num_oracle_calls = 0;
     if (store_primal_dual_sequences_) {
       for (int j = 0; j < factors_.size(); ++j) {
-	if (factors_[j]->type() == FactorTypes::FACTOR_GENERIC) {
+	if (factors_[j]->IsGeneric()) {
 	  num_oracle_calls +=
 	    static_cast<GenericFactor*>(factors_[j])->GetNumOracleCalls();
 	}
