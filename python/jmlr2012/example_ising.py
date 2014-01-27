@@ -378,7 +378,7 @@ def run_norm_product(edges, node_potentials, edge_potentials, num_iterations=500
         #dual_obj2 = dual_obj-dual_obj1
         #print (dual_obj1,dual_obj2)
 
-        dual_obj = dual_obj2
+        dual_obj = dual_obj2 # Comment this line to use the smoothed dual objective.
 
 
 
@@ -1031,25 +1031,21 @@ def trim_primal_dual_sequences(dual_obj_seq, primal_obj_seq, dual_value, primal_
         primal_obj_seq = primal_obj_seq[:(ind[0]+1)]
     return dual_obj_seq, primal_obj_seq
         
+        
+def compare_several_runs(generate_grid, edge_coupling, grid_size, num_runs):
+    tol = 1e-6
+
+    dual_obj_mplp_runs = []
+    dual_obj_np_runs = []
+    dual_obj_ad3_runs = []
+    dual_obj_gurobi_runs = []
+    primal_obj_mplp_runs = []
+    primal_obj_np_runs = []
+    primal_obj_ad3_runs = []
+    primal_obj_gurobi_runs = []
     
-if __name__ == "__main__": 
-    if len(sys.argv) == 1:
-        generate_grid = False #True
-        grid_size = 30
-        edge_couplings = [0.1, 0.2, 0.5, 1.0]
-    else:
-        generate_grid = bool(int(sys.argv[1]))
-        grid_size = int(sys.argv[2])
-        edge_couplings = [float(val) for val in sys.argv[3:]]
-
-    #pdb.set_trace()
-    plt.ion()
-    fig = plt.figure()
-    #plt.rc('text', usetex=True)
-    #plt.rc('font', family='sans-serif')
-
-    for ind_run, edge_coupling in enumerate(edge_couplings):
-        filename = 'ising_gridsize-%d_coupling-%f.fg' % (grid_size, edge_coupling)
+    for ind_run in xrange(num_runs):
+        filename = 'ising_gridsize-%d_coupling-%f_run-%d.fg' % (grid_size, edge_coupling, ind_run)
         if generate_grid:
             node_indices, edges, node_potentials, edge_potentials = generate_ising_grid(grid_size, edge_coupling)
             save_ising(filename, edges, node_potentials, edge_potentials)
@@ -1060,16 +1056,21 @@ if __name__ == "__main__":
         
         use_mplp = True
         use_np = True
-        use_accdd = True #True
-        use_sdd = False #True
-        use_psdd = True
         use_ad3 = True
         use_gurobi = True
         
+
+        print '#######################'
+        print 'Run', ind_run
+        print '#######################'        
+
         dual_value = run_gurobi(edges, node_potentials, edge_potentials, relax=True)
         print 'Optimal dual:', dual_value
         primal_value = run_gurobi(edges, node_potentials, edge_potentials, relax=False)
         print 'Optimal primal:', primal_value
+        
+        dual_obj_gurobi_runs.append(dual_value)
+        primal_obj_gurobi_runs.append(primal_value)
         
         if use_mplp:
             print 'Running MPLP...'
@@ -1077,8 +1078,9 @@ if __name__ == "__main__":
                 run_mplp(edges, node_potentials, edge_potentials, num_iterations)
             dual_obj_seq_mplp, primal_obj_seq_mplp = find_stepwise_best(dual_obj_seq, primal_obj_seq)
             print 'Best primal:', primal_obj_seq_mplp[-1]
-            dual_obj_seq_mplp, primal_obj_seq_mplp = \
-                trim_primal_dual_sequences(dual_obj_seq_mplp, primal_obj_seq_mplp, dual_value, primal_value)
+            print 'Best dual:', dual_obj_seq_mplp[-1]
+            dual_obj_mplp_runs.append(dual_obj_seq_mplp[-1])
+            primal_obj_mplp_runs.append(primal_obj_seq_mplp[-1])
     
         
         if use_np:
@@ -1093,57 +1095,11 @@ if __name__ == "__main__":
                     primal_obj_seq_np = primal_obj_seq
                     temperature_np = temperature
             print 'Best temperature np:', temperature_np
-            dual_obj_seq_np, primal_obj_seq_np = \
-                trim_primal_dual_sequences(dual_obj_seq_np, primal_obj_seq_np, dual_value, primal_value)
+            print 'Best primal:', primal_obj_seq_np[-1]
+            print 'Best dual:', dual_obj_seq_np[-1]
+            dual_obj_np_runs.append(dual_obj_seq_np[-1])
+            primal_obj_np_runs.append(primal_obj_seq_np[-1])
         
-        if use_accdd:
-            dual_obj_seq_accdd = [np.inf]
-            for epsilon in [10.0]:
-            #for epsilon in [1.0, 10.0, 100.0]:
-                print 'Running ACCDD with epsilon =', epsilon, '.'
-                dual_obj_seq, primal_obj_seq, p_int = \
-                    run_accdd(edges, node_potentials, edge_potentials, num_iterations, epsilon)
-                dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
-                if dual_obj_seq[-1] < dual_obj_seq_accdd[-1]:
-                    dual_obj_seq_accdd = dual_obj_seq
-                    primal_obj_seq_accdd = primal_obj_seq
-                    epsilon_accdd = epsilon
-            print 'Best epsilon ACCDD:', epsilon_accdd
-            dual_obj_seq_accdd, primal_obj_seq_accdd = \
-                trim_primal_dual_sequences(dual_obj_seq_accdd, primal_obj_seq_accdd, dual_value, primal_value)
-        
-        if use_sdd:
-            dual_obj_seq_sdd = [np.inf]
-        #    for eta in [0.001, 0.01, 0.1, 1, 10]:
-            for eta, temperature in itertools.product([0.01, 0.1, 1], [0.01, 0.1]):
-                print 'Running SDD with eta =', eta, 'and T =', temperature, '.'
-                dual_obj_seq, primal_obj_seq, p_int = \
-                    run_sdd(edges, node_potentials, edge_potentials, num_iterations, eta, temperature)
-                dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
-                if dual_obj_seq[-1] < dual_obj_seq_sdd[-1]:
-                    dual_obj_seq_sdd = dual_obj_seq
-                    primal_obj_seq_sdd = primal_obj_seq
-                    eta_sdd = eta
-                    temperature_sdd = temperature
-            print 'Best eta SDD:', eta_sdd
-            print 'Best temperature SDD:', temperature_sdd
-            dual_obj_seq_sdd, primal_obj_seq_sdd = \
-                trim_primal_dual_sequences(dual_obj_seq_sdd, primal_obj_seq_sdd, dual_value, primal_value)
-        
-        if use_psdd:
-            dual_obj_seq_psdd = [np.inf]
-            for eta in [0.001, 0.01, 0.1, 1, 10]:
-                print 'Running PSDD with eta =', eta, '.'
-                dual_obj_seq, primal_obj_seq, p_int = \
-                    run_psdd(edges, node_potentials, edge_potentials, num_iterations, eta=eta)
-                dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
-                if dual_obj_seq[-1] < dual_obj_seq_psdd[-1]:
-                    dual_obj_seq_psdd = dual_obj_seq
-                    primal_obj_seq_psdd = primal_obj_seq
-                    eta_psdd = eta
-            print 'Best eta PSDD:', eta_psdd
-            dual_obj_seq_psdd, primal_obj_seq_psdd = \
-                trim_primal_dual_sequences(dual_obj_seq_psdd, primal_obj_seq_psdd, dual_value, primal_value)
         
         if use_ad3:
             dual_obj_seq_ad3  = [np.inf]
@@ -1153,86 +1109,260 @@ if __name__ == "__main__":
                 dual_obj_seq, primal_obj_seq, p_int = \
                     run_ad3(edges, node_potentials, edge_potentials, num_iterations, eta=eta)
                 dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
-                print 'Best primal:', primal_obj_seq[-1]
                 if dual_obj_seq[-1] < dual_obj_seq_ad3[-1]:
                     dual_obj_seq_ad3 = dual_obj_seq
                     primal_obj_seq_ad3 = primal_obj_seq
                     eta_ad3  = eta
             print 'Best eta AD3:', eta_ad3
-            dual_obj_seq_ad3, primal_obj_seq_ad3 = \
-                trim_primal_dual_sequences(dual_obj_seq_ad3, primal_obj_seq_ad3, dual_value, primal_value)
+            print 'Best primal:', primal_obj_seq_ad3[-1]
+            print 'Best dual:', dual_obj_seq_ad3[-1]
+            dual_obj_ad3_runs.append(dual_obj_seq_ad3[-1])
+            primal_obj_ad3_runs.append(primal_obj_seq_ad3[-1])
     
-        plt.subplot(2, int(np.ceil(len(edge_couplings)/2.0)), ind_run+1)
- 
-        if use_mplp:
-            plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'c-', label='MPLP dual', linewidth=2.0)
-            plt.hold(True)
-        if use_np:
-            plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'b-', label='Norm-Prod dual', linewidth=2.0)
-            plt.hold(True)
-        if use_psdd:
-            plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r-', label='PSDD dual', linewidth=2.0)
-            plt.hold(True)
-        if use_sdd:
-            plt.plot(np.arange(len(dual_obj_seq_sdd)), dual_obj_seq_sdd, 'y-', label='SDD dual', linewidth=2.0)
-            plt.hold(True)
-        if use_accdd:
-            plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm-', label='ACCDD dual', linewidth=2.0)
-            plt.hold(True)
-        if use_ad3:
-            plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual', linewidth=2.0)
-            plt.hold(True)
-    #    if use_gurobi:
-    #        plt.plot(np.arange(num_iterations), np.tile(dual_value, num_iterations), 'k-', label='Optimal dual')
-    #        plt.hold(True)
-        if use_mplp:
-            plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'c--', label='MPLP primal', linewidth=2.0)
-            plt.hold(True)
-        if use_np:
-            plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'b--', label='Norm-Prod primal', linewidth=2.0)
-            plt.hold(True)
-        if use_psdd:
-            plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r--', label='PSDD primal', linewidth=2.0)
-            plt.hold(True)
-        if use_sdd:
-            plt.plot(np.arange(len(primal_obj_seq_sdd)), primal_obj_seq_sdd, 'y--', label='SDD primal', linewidth=2.0)
-            plt.hold(True)
-        if use_accdd:
-            plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm--', label='ACCDD primal', linewidth=2.0)
-            plt.hold(True)
-        if use_ad3:
-            plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g--', label='AD3 primal', linewidth=2.0)
-            plt.hold(True)
-    #    if use_gurobi:
-    #        plt.plot(np.arange(num_iterations), np.tile(primal_value, num_iterations), 'k:', label='Optimal primal')
-    #        plt.hold(True)
+        dual_runs = np.zeros((ind_run+1, 4))
+        dual_runs[:,0] = dual_obj_gurobi_runs
+        dual_runs[:,1] = dual_obj_mplp_runs
+        dual_runs[:,2] = dual_obj_np_runs
+        dual_runs[:,3] = dual_obj_ad3_runs
         
-        if ind_run == 0:
-            plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            plt.ylabel('Objective value', fontsize=16)
-            plt.xlabel('Number of iterations', fontsize=16)
-            #plt.title(r'Edge coupling: $\rho=' + str(edge_coupling) + '$')
-        else:
-            pass
-            #plt.title(r'$\rho=' + str(edge_coupling) + '$')
+        primal_runs = np.zeros((ind_run+1, 4))
+        primal_runs[:,0] = primal_obj_gurobi_runs
+        primal_runs[:,1] = primal_obj_mplp_runs
+        primal_runs[:,2] = primal_obj_np_runs
+        primal_runs[:,3] = primal_obj_ad3_runs
 
-        plt.title('Edge coupling: ' + str(edge_coupling), fontsize=16)
-        plt.setp(plt.gca().get_xticklabels(), fontsize=14)        
-        plt.setp(plt.gca().get_yticklabels(), fontsize=14)        
-
-        ymin = np.max(primal_obj_seq_ad3) - 10.0
-        ymax = np.min(dual_obj_seq_ad3) + 10.0
+        print dual_runs
+        print primal_runs
         
-        #plt.ylim((ymin, ymax))
-        #plt.suptitle('Edge coupling: ' + str(edge_coupling))
+        systems = ['mplp', 'np', 'ad3']
+        best_systems_dual = []
+        best_systems_primal = []
+        best_dual = np.min(dual_runs[ind_run, 1:])
+        best_primal = np.max(primal_runs[ind_run, 1:])
+        for j in xrange(len(systems)):
+            gap = best_dual*tol
+            if dual_runs[ind_run, 1+j]-gap < best_dual:
+                best_systems_dual.append(systems[j])
+            gap = best_primal*tol
+            if primal_runs[ind_run, 1+j]+gap > best_primal:
+                best_systems_primal.append(systems[j])
+        print 'Dual winners:', best_systems_dual
+        print 'Primal winners:', best_systems_primal
+#        print dual_obj_mplp_runs, dual_obj_np_runs, dual_obj_ad3_runs, dual_obj_gurobi_runs
+#        print primal_obj_mplp_runs, primal_obj_np_runs, primal_obj_ad3_runs, dual_obj_gurobi_runs
+        
+        
+
+        
+    
+if __name__ == "__main__": 
+    multiple_runs = True
+    if len(sys.argv) == 1:
+        generate_grid = False #True
+        grid_size = 30
+        edge_couplings = [0.1, 0.2, 0.5, 1.0]
+    else:
+        generate_grid = bool(int(sys.argv[1]))
+        grid_size = int(sys.argv[2])
+        edge_couplings = [float(val) for val in sys.argv[3:]]
+
+    if multiple_runs:
+        num_runs = 100
+        for edge_coupling in edge_couplings:
+            compare_several_runs(generate_grid, edge_coupling, grid_size, num_runs)
+    else:
         
         #pdb.set_trace()
-        
-        #plt.xticks(paramValues)
-        #plt.grid(True)
-        
-    #filename = 'ising_gridsize-%d_coupling-%f.png' % (grid_size, edge_coupling)
-    #fig.savefig(filename)
+        plt.ion()
+        fig = plt.figure()
+        #plt.rc('text', usetex=True)
+        #plt.rc('font', family='sans-serif')
     
-    plt.show()
-    pdb.set_trace()
+        for ind_run, edge_coupling in enumerate(edge_couplings):
+            filename = 'ising_gridsize-%d_coupling-%f.fg' % (grid_size, edge_coupling)
+            if generate_grid:
+                node_indices, edges, node_potentials, edge_potentials = generate_ising_grid(grid_size, edge_coupling)
+                save_ising(filename, edges, node_potentials, edge_potentials)
+            else:
+                edges, node_potentials, edge_potentials = load_ising(filename)
+            
+            num_iterations = 500
+            
+            use_mplp = True
+            use_np = True
+            use_accdd = True #True
+            use_sdd = False #True
+            use_psdd = True
+            use_ad3 = True
+            use_gurobi = True
+            
+            dual_value = run_gurobi(edges, node_potentials, edge_potentials, relax=True)
+            print 'Optimal dual:', dual_value
+            primal_value = run_gurobi(edges, node_potentials, edge_potentials, relax=False)
+            print 'Optimal primal:', primal_value
+            
+            if use_mplp:
+                print 'Running MPLP...'
+                dual_obj_seq, primal_obj_seq, p_int = \
+                    run_mplp(edges, node_potentials, edge_potentials, num_iterations)
+                dual_obj_seq_mplp, primal_obj_seq_mplp = find_stepwise_best(dual_obj_seq, primal_obj_seq)
+                print 'Best primal:', primal_obj_seq_mplp[-1]
+                dual_obj_seq_mplp, primal_obj_seq_mplp = \
+                    trim_primal_dual_sequences(dual_obj_seq_mplp, primal_obj_seq_mplp, dual_value, primal_value)
+        
+            
+            if use_np:
+                dual_obj_seq_np = [np.inf]
+                for temperature in [0.001]: #[0.01, 0.1]:
+                    print 'Running NP with T =', temperature, '.'
+                    dual_obj_seq, primal_obj_seq, p_int = \
+                        run_norm_product(edges, node_potentials, edge_potentials, num_iterations, temperature)
+                    dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
+                    if dual_obj_seq[-1] < dual_obj_seq_np[-1]:
+                        dual_obj_seq_np = dual_obj_seq
+                        primal_obj_seq_np = primal_obj_seq
+                        temperature_np = temperature
+                print 'Best temperature np:', temperature_np
+                dual_obj_seq_np, primal_obj_seq_np = \
+                    trim_primal_dual_sequences(dual_obj_seq_np, primal_obj_seq_np, dual_value, primal_value)
+            
+            if use_accdd:
+                dual_obj_seq_accdd = [np.inf]
+                for epsilon in [10.0]:
+                #for epsilon in [1.0, 10.0, 100.0]:
+                    print 'Running ACCDD with epsilon =', epsilon, '.'
+                    dual_obj_seq, primal_obj_seq, p_int = \
+                        run_accdd(edges, node_potentials, edge_potentials, num_iterations, epsilon)
+                    dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
+                    if dual_obj_seq[-1] < dual_obj_seq_accdd[-1]:
+                        dual_obj_seq_accdd = dual_obj_seq
+                        primal_obj_seq_accdd = primal_obj_seq
+                        epsilon_accdd = epsilon
+                print 'Best epsilon ACCDD:', epsilon_accdd
+                dual_obj_seq_accdd, primal_obj_seq_accdd = \
+                    trim_primal_dual_sequences(dual_obj_seq_accdd, primal_obj_seq_accdd, dual_value, primal_value)
+            
+            if use_sdd:
+                dual_obj_seq_sdd = [np.inf]
+            #    for eta in [0.001, 0.01, 0.1, 1, 10]:
+                for eta, temperature in itertools.product([0.01, 0.1, 1], [0.01, 0.1]):
+                    print 'Running SDD with eta =', eta, 'and T =', temperature, '.'
+                    dual_obj_seq, primal_obj_seq, p_int = \
+                        run_sdd(edges, node_potentials, edge_potentials, num_iterations, eta, temperature)
+                    dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
+                    if dual_obj_seq[-1] < dual_obj_seq_sdd[-1]:
+                        dual_obj_seq_sdd = dual_obj_seq
+                        primal_obj_seq_sdd = primal_obj_seq
+                        eta_sdd = eta
+                        temperature_sdd = temperature
+                print 'Best eta SDD:', eta_sdd
+                print 'Best temperature SDD:', temperature_sdd
+                dual_obj_seq_sdd, primal_obj_seq_sdd = \
+                    trim_primal_dual_sequences(dual_obj_seq_sdd, primal_obj_seq_sdd, dual_value, primal_value)
+            
+            if use_psdd:
+                dual_obj_seq_psdd = [np.inf]
+                for eta in [0.001, 0.01, 0.1, 1, 10]:
+                    print 'Running PSDD with eta =', eta, '.'
+                    dual_obj_seq, primal_obj_seq, p_int = \
+                        run_psdd(edges, node_potentials, edge_potentials, num_iterations, eta=eta)
+                    dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
+                    if dual_obj_seq[-1] < dual_obj_seq_psdd[-1]:
+                        dual_obj_seq_psdd = dual_obj_seq
+                        primal_obj_seq_psdd = primal_obj_seq
+                        eta_psdd = eta
+                print 'Best eta PSDD:', eta_psdd
+                dual_obj_seq_psdd, primal_obj_seq_psdd = \
+                    trim_primal_dual_sequences(dual_obj_seq_psdd, primal_obj_seq_psdd, dual_value, primal_value)
+            
+            if use_ad3:
+                dual_obj_seq_ad3  = [np.inf]
+                #for eta in [0.001, 0.01, 0.1, 1, 5.0]:
+                for eta in [0.1]: #[0.1]:
+                    print 'Running AD3 with eta =', eta, '.'
+                    dual_obj_seq, primal_obj_seq, p_int = \
+                        run_ad3(edges, node_potentials, edge_potentials, num_iterations, eta=eta)
+                    dual_obj_seq, primal_obj_seq = find_stepwise_best(dual_obj_seq, primal_obj_seq)
+                    print 'Best primal:', primal_obj_seq[-1]
+                    if dual_obj_seq[-1] < dual_obj_seq_ad3[-1]:
+                        dual_obj_seq_ad3 = dual_obj_seq
+                        primal_obj_seq_ad3 = primal_obj_seq
+                        eta_ad3  = eta
+                print 'Best eta AD3:', eta_ad3
+                dual_obj_seq_ad3, primal_obj_seq_ad3 = \
+                    trim_primal_dual_sequences(dual_obj_seq_ad3, primal_obj_seq_ad3, dual_value, primal_value)
+        
+            plt.subplot(2, int(np.ceil(len(edge_couplings)/2.0)), ind_run+1)
+     
+            if use_mplp:
+                plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'c-', label='MPLP dual', linewidth=2.0)
+                plt.hold(True)
+            if use_np:
+                plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'b-', label='Norm-Prod dual', linewidth=2.0)
+                plt.hold(True)
+            if use_psdd:
+                plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r-', label='PSDD dual', linewidth=2.0)
+                plt.hold(True)
+            if use_sdd:
+                plt.plot(np.arange(len(dual_obj_seq_sdd)), dual_obj_seq_sdd, 'y-', label='SDD dual', linewidth=2.0)
+                plt.hold(True)
+            if use_accdd:
+                plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm-', label='ACCDD dual', linewidth=2.0)
+                plt.hold(True)
+            if use_ad3:
+                plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual', linewidth=2.0)
+                plt.hold(True)
+        #    if use_gurobi:
+        #        plt.plot(np.arange(num_iterations), np.tile(dual_value, num_iterations), 'k-', label='Optimal dual')
+        #        plt.hold(True)
+            if use_mplp:
+                plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'c--', label='MPLP primal', linewidth=2.0)
+                plt.hold(True)
+            if use_np:
+                plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'b--', label='Norm-Prod primal', linewidth=2.0)
+                plt.hold(True)
+            if use_psdd:
+                plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r--', label='PSDD primal', linewidth=2.0)
+                plt.hold(True)
+            if use_sdd:
+                plt.plot(np.arange(len(primal_obj_seq_sdd)), primal_obj_seq_sdd, 'y--', label='SDD primal', linewidth=2.0)
+                plt.hold(True)
+            if use_accdd:
+                plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm--', label='ACCDD primal', linewidth=2.0)
+                plt.hold(True)
+            if use_ad3:
+                plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g--', label='AD3 primal', linewidth=2.0)
+                plt.hold(True)
+        #    if use_gurobi:
+        #        plt.plot(np.arange(num_iterations), np.tile(primal_value, num_iterations), 'k:', label='Optimal primal')
+        #        plt.hold(True)
+            
+            if ind_run == 0:
+                plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+                plt.ylabel('Objective value', fontsize=16)
+                plt.xlabel('Number of iterations', fontsize=16)
+                #plt.title(r'Edge coupling: $\rho=' + str(edge_coupling) + '$')
+            else:
+                pass
+                #plt.title(r'$\rho=' + str(edge_coupling) + '$')
+    
+            plt.title('Edge coupling: ' + str(edge_coupling), fontsize=16)
+            plt.setp(plt.gca().get_xticklabels(), fontsize=14)        
+            plt.setp(plt.gca().get_yticklabels(), fontsize=14)        
+    
+            ymin = np.max(primal_obj_seq_ad3) - 10.0
+            ymax = np.min(dual_obj_seq_ad3) + 10.0
+            
+            #plt.ylim((ymin, ymax))
+            #plt.suptitle('Edge coupling: ' + str(edge_coupling))
+            
+            #pdb.set_trace()
+            
+            #plt.xticks(paramValues)
+            #plt.grid(True)
+            
+        #filename = 'ising_gridsize-%d_coupling-%f.png' % (grid_size, edge_coupling)
+        #fig.savefig(filename)
+        
+        plt.show()
+        pdb.set_trace()
