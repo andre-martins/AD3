@@ -38,6 +38,7 @@ libad3 = ('ad3', {
 setup(name='ad3',
       version="2.0.1",
       author="Andre Martins",
+      description='Alternating Directions Dual Decomposition',
       url="http://www.ark.cs.cmu.edu/AD3",
       author_email="afm@cs.cmu.edu",
       package_dir={'ad3': 'python/ad3'},
