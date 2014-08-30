@@ -1156,7 +1156,7 @@ def compare_several_runs(generate_grid, edge_coupling, grid_size, num_runs):
         
     
 if __name__ == "__main__": 
-    multiple_runs = True
+    multiple_runs = False #True
     if len(sys.argv) == 1:
         generate_grid = False #True
         grid_size = 30
@@ -1295,43 +1295,43 @@ if __name__ == "__main__":
             plt.subplot(2, int(np.ceil(len(edge_couplings)/2.0)), ind_run+1)
      
             if use_mplp:
-                plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'c-', label='MPLP dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'co-', label='MPLP dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_np:
-                plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'b-', label='Norm-Prod dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'bv-', label='Norm-Prod. dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_psdd:
-                plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r-', label='PSDD dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r^-', label='PSDD dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_sdd:
                 plt.plot(np.arange(len(dual_obj_seq_sdd)), dual_obj_seq_sdd, 'y-', label='SDD dual', linewidth=2.0)
                 plt.hold(True)
             if use_accdd:
-                plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm-', label='ACCDD dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm*-', label='ACCDD dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_ad3:
-                plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'gs-', label='AD3 dual', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
         #    if use_gurobi:
         #        plt.plot(np.arange(num_iterations), np.tile(dual_value, num_iterations), 'k-', label='Optimal dual')
         #        plt.hold(True)
             if use_mplp:
-                plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'c--', label='MPLP primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'co--', label='MPLP primal', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_np:
-                plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'b--', label='Norm-Prod primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'bv--', label='Norm-Prod primal', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_psdd:
-                plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r--', label='PSDD primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r^--', label='PSDD primal', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_sdd:
                 plt.plot(np.arange(len(primal_obj_seq_sdd)), primal_obj_seq_sdd, 'y--', label='SDD primal', linewidth=2.0)
                 plt.hold(True)
             if use_accdd:
-                plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm--', label='ACCDD primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm*--', label='ACCDD primal', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
             if use_ad3:
-                plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g--', label='AD3 primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'gs--', label='AD3 primal', linewidth=3.0, markevery=100, markeredgecolor='None', markersize=10)
                 plt.hold(True)
         #    if use_gurobi:
         #        plt.plot(np.arange(num_iterations), np.tile(primal_value, num_iterations), 'k:', label='Optimal primal')
