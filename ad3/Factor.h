@@ -412,7 +412,10 @@ public:
   // Add evidence information to the factor.
   int AddEvidence(vector<bool> *active_links,
                   vector<int> *evidence,
-                  vector<int> *additional_evidence) { assert(false); }
+                  vector<int> *additional_evidence) {
+    assert(false);
+    return 0;
+  }
 
   // Compute the MAP (local subproblem in the projected subgradient algorithm).
   void SolveMAP(const vector<double> &variable_log_potentials,
@@ -463,7 +466,10 @@ public:
   // Add evidence information to the factor.
   int AddEvidence(vector<bool> *active_links,
                   vector<int> *evidence,
-                  vector<int> *additional_evidence) { assert(false); }
+                  vector<int> *additional_evidence) {
+    assert(false);
+    return 0;
+  }
 
   // Compute the MAP (local subproblem in the projected subgradient algorithm).
   void SolveMAP(const vector<double> &variable_log_potentials,
