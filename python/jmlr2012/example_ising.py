@@ -1156,7 +1156,7 @@ def compare_several_runs(generate_grid, edge_coupling, grid_size, num_runs):
         
     
 if __name__ == "__main__": 
-    multiple_runs = True
+    multiple_runs = False #True
     if len(sys.argv) == 1:
         generate_grid = False #True
         grid_size = 30
@@ -1295,48 +1295,76 @@ if __name__ == "__main__":
             plt.subplot(2, int(np.ceil(len(edge_couplings)/2.0)), ind_run+1)
      
             if use_mplp:
-                plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'c-', label='MPLP dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_mplp)), dual_obj_seq_mplp, 'co-', label='MPLP dual', linewidth=2.0)
                 plt.hold(True)
             if use_np:
-                plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'b-', label='Norm-Prod dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_np)), dual_obj_seq_np, 'bv-', label='Norm-Prod dual', linewidth=2.0)
                 plt.hold(True)
             if use_psdd:
-                plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r-', label='PSDD dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_psdd)), dual_obj_seq_psdd, 'r^-', label='PSDD dual', linewidth=2.0)
                 plt.hold(True)
             if use_sdd:
                 plt.plot(np.arange(len(dual_obj_seq_sdd)), dual_obj_seq_sdd, 'y-', label='SDD dual', linewidth=2.0)
                 plt.hold(True)
             if use_accdd:
-                plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm-', label='ACCDD dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_accdd)), dual_obj_seq_accdd, 'm*-', label='ACCDD dual', linewidth=2.0)
                 plt.hold(True)
             if use_ad3:
-                plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'g-', label='AD3 dual', linewidth=2.0)
+                plt.plot(np.arange(len(dual_obj_seq_ad3)), dual_obj_seq_ad3, 'gs-', label='AD3 dual', linewidth=2.0)
                 plt.hold(True)
         #    if use_gurobi:
         #        plt.plot(np.arange(num_iterations), np.tile(dual_value, num_iterations), 'k-', label='Optimal dual')
         #        plt.hold(True)
             if use_mplp:
-                plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'c--', label='MPLP primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_mplp)), primal_obj_seq_mplp, 'co--', label='MPLP primal', linewidth=2.0)
                 plt.hold(True)
             if use_np:
-                plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'b--', label='Norm-Prod primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_np)), primal_obj_seq_np, 'bv--', label='Norm-Prod primal', linewidth=2.0)
                 plt.hold(True)
             if use_psdd:
-                plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r--', label='PSDD primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_psdd)), primal_obj_seq_psdd, 'r^--', label='PSDD primal', linewidth=2.0)
                 plt.hold(True)
             if use_sdd:
                 plt.plot(np.arange(len(primal_obj_seq_sdd)), primal_obj_seq_sdd, 'y--', label='SDD primal', linewidth=2.0)
                 plt.hold(True)
             if use_accdd:
-                plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm--', label='ACCDD primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_accdd)), primal_obj_seq_accdd, 'm*--', label='ACCDD primal', linewidth=2.0)
                 plt.hold(True)
             if use_ad3:
-                plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'g--', label='AD3 primal', linewidth=2.0)
+                plt.plot(np.arange(len(primal_obj_seq_ad3)), primal_obj_seq_ad3, 'gs--', label='AD3 primal', linewidth=2.0)
                 plt.hold(True)
         #    if use_gurobi:
         #        plt.plot(np.arange(num_iterations), np.tile(primal_value, num_iterations), 'k:', label='Optimal primal')
         #        plt.hold(True)
             
+    
+            plt.title('Edge coupling: ' + str(edge_coupling), fontsize=16)
+            plt.setp(plt.gca().get_xticklabels(), fontsize=14)        
+            plt.setp(plt.gca().get_yticklabels(), fontsize=14)        
+    
+            ymin = np.max(primal_obj_seq_ad3) - 10.0
+            ymax = np.min(dual_obj_seq_ad3) + 10.0
+
+            if True:
+                ax = plt.gcf().get_axes()[ind_run]
+                if ind_run == 0:
+                    plt.xlim((0.0, 16.0))
+                    plt.ylim((236.0, 243.0))
+                    for line in ax.get_lines(): line.set(markevery=1, markeredgecolor='None', markersize=10)
+                elif ind_run == 1:
+                    plt.xlim((0.0, 65.0))
+                    plt.ylim((234.0, 239.0))
+                    for line in ax.get_lines(): line.set(markevery=10, markeredgecolor='None', markersize=10)
+                elif ind_run == 2:
+                    plt.xlim((0.0, 450.0))
+                    plt.ylim((270.0, 285.0))
+                    #plt.ylim((282.0, 296.0))
+                    for line in ax.get_lines(): line.set(markevery=50, markeredgecolor='None', markersize=10)
+                else: # ind_run == 3:
+                    plt.xlim((0.0, 450.0))
+                    plt.ylim((350.0, 460.0))
+                    for line in ax.get_lines(): line.set(markevery=50, markeredgecolor='None', markersize=10)
+
             if ind_run == 0:
                 plt.legend(loc=4) #bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
                 plt.ylabel('Objective value', fontsize=16)
@@ -1345,13 +1373,7 @@ if __name__ == "__main__":
             else:
                 pass
                 #plt.title(r'$\rho=' + str(edge_coupling) + '$')
-    
-            plt.title('Edge coupling: ' + str(edge_coupling), fontsize=16)
-            plt.setp(plt.gca().get_xticklabels(), fontsize=14)        
-            plt.setp(plt.gca().get_yticklabels(), fontsize=14)        
-    
-            ymin = np.max(primal_obj_seq_ad3) - 10.0
-            ymax = np.min(dual_obj_seq_ad3) + 10.0
+
             
             #plt.ylim((ymin, ymax))
             #plt.suptitle('Edge coupling: ' + str(edge_coupling))
