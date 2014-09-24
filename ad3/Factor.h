@@ -218,6 +218,12 @@ class Factor {
             &additional_posteriors_last_);
   }
 
+  // Compute max-marginals.
+  virtual void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                                   const vector<double> &additional_log_potentials,
+                                   vector<double> *max_marginals_zeros,
+                                   vector<double> *max_marginals_ones) = 0;
+
  private:
   int id_; // Factor id.
 
@@ -266,6 +272,12 @@ class FactorXOR : public Factor {
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
 
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones);
+
  private:
   // Cached copy of the last sort.
   vector<pair<double,int> > last_sort_;
@@ -300,6 +312,12 @@ class FactorAtMostOne : public Factor {
                const vector<double> &additional_log_potentials,
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
+
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones);
 
  private:
   // Cached copy of the last sort.
@@ -351,6 +369,12 @@ class FactorOR : public Factor {
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
 
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones);
+
  private:
   // Cached copy of the last sort.
   vector<pair<double,int> > last_sort_;
@@ -386,6 +410,12 @@ public:
                const vector<double> &additional_log_potentials,
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
+
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones);
 
  private:
   // Cached copy of the last sort.
@@ -429,6 +459,16 @@ public:
                const vector<double> &additional_log_potentials,
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
+
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones) {
+    // Not implemented yet.
+    // TODO(atm): Implement this.
+    assert(false);
+  }
 
  private:
   // Budget value.
@@ -484,6 +524,16 @@ public:
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
 
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones) {
+    // Not implemented yet.
+    // TODO(atm): Implement this.
+    assert(false);
+  }
+
  private:
   // Budget value.
   double budget_;
@@ -521,6 +571,12 @@ class FactorPAIR : public Factor {
                const vector<double> &additional_log_potentials,
                vector<double> *variable_posteriors,
                vector<double> *additional_posteriors);
+
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones);
 
   // Add evidence information to the factor.
   int AddEvidence(vector<bool> *active_links,

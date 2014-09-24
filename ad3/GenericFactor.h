@@ -156,6 +156,17 @@ class GenericFactor : public Factor {
                        vector<double> *variable_posteriors,
                        vector<double> *additional_posteriors);
 
+  // Compute max-marginals.
+  void ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                           const vector<double> &additional_log_potentials,
+                           vector<double> *max_marginals_zeros,
+                           vector<double> *max_marginals_ones) {
+    // Not implemented yet.
+    // TODO(atm): implement this.
+    assert(false);
+  }
+
+
  protected:
   vector<Configuration> active_set_;
   vector<double> distribution_;

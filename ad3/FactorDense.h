@@ -215,6 +215,31 @@ class FactorDense : public GenericFactor {
     return (i == 0)? state : variable_offsets_[i-1] + state;
   }
 
+  // Compute max-marginals.
+  void ComputeMaxMarginalsMulti(const vector<double> &variable_log_potentials,
+                                const vector<double> &additional_log_potentials,
+                                vector<double> *max_marginals) {
+    vector<int> states(GetNumMultiVariables());
+    max_marginals->assign(Degree(), -1e100);
+    for (int index = 0; index < additional_log_potentials.size(); ++index) {
+      double score = additional_log_potentials[index];
+      GetConfigurationStates(index, &states);
+      for (int i = 0; i < states.size(); ++i) {
+        int variable_index = GetVariableIndex(i, states[i]);
+        score += variable_log_potentials[variable_index];
+      }
+      // This is the score of the configuration index.
+      // Now update the best score for each multi-variable
+      // fixed to a value.
+      for (int i = 0; i < states.size(); ++i) {
+        int variable_index = GetVariableIndex(i, states[i]);
+        if ((*max_marginals)[variable_index] < score) {
+          (*max_marginals)[variable_index] = score;
+        }
+      }
+    }
+  }
+
  private:
   // Multi-variables linked to this factor.
   vector<MultiVariable*> multi_variables_;

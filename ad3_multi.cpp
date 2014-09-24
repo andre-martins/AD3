@@ -225,8 +225,9 @@ int RunAll(const string &format,
         factor_graph.SetMaxIterationsPSDD(niters);
         factor_graph.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors, &value);
       } else if (algorithm == "mplp") {
-        cout << "MPLP is not implemented yet.";
-        assert(false);
+        assert(!exact);
+        factor_graph.SetMaxIterationsMPLP(niters);
+        factor_graph.SolveLPMAPWithMPLP(&posteriors, &additional_posteriors, &value);
       } else {
         cout << "Unknown algorithm: " << algorithm << endl;
       }
