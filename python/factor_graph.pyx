@@ -41,6 +41,10 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
                                     vector[double]* dual_obj_sequence)
         void GetNumOracleCallsSequence(vector[int]* num_oracle_calls_sequence)
         void ConvertToBinaryFactorGraph(FactorGraph* binary_factor_graph)
+        void SetMaxIterationsMPLP(int max_iterations)
+        int SolveLPMAPWithMPLP(vector[double]* posteriors,
+                               vector[double]* additional_posteriors,
+                               double* value)
         void SetEtaPSDD(double eta)
         void SetMaxIterationsPSDD(int max_iterations)
         int SolveLPMAPWithPSDD(vector[double]* posteriors,
@@ -511,6 +515,37 @@ cdef class PFactorGraph:
     def fix_multi_variables_without_factors(self):
         self.thisptr.FixMultiVariablesWithoutFactors()
 
+    def set_max_iterations_mplp(self, int max_iterations):
+        self.thisptr.SetMaxIterationsMPLP(max_iterations)
+
+    def solve_lp_map(self, algorithm='ad3'):
+        if algorithm == 'mplp':
+            return self.solve_lp_map_mplp()
+        elif algorithm == 'psdd':
+            return self.solve_lp_map_psdd()
+        elif algorithm == 'ad3':
+            return self.solve_lp_map_ad3()
+        else:
+            print 'Unknown algorithm:', algorithm
+            raise NotImplementedError
+
+    def solve_lp_map_mplp(self):
+        cdef vector[double] posteriors
+        cdef vector[double] additional_posteriors
+        cdef double value
+        cdef int solver_status
+        solver_status = self.thisptr.SolveLPMAPWithMPLP(&posteriors,
+                                                        &additional_posteriors,
+                                                        &value)
+        p_posteriors, p_additional_posteriors = [], []
+        cdef size_t i
+        for i in range(posteriors.size()):
+            p_posteriors.append(posteriors[i])
+        for i in range(additional_posteriors.size()):
+            p_additional_posteriors.append(additional_posteriors[i])
+
+        return value, p_posteriors, p_additional_posteriors, solver_status
+
     def set_eta_psdd(self, double eta):
         self.thisptr.SetEtaPSDD(eta)
 
@@ -521,8 +556,10 @@ cdef class PFactorGraph:
         cdef vector[double] posteriors
         cdef vector[double] additional_posteriors
         cdef double value
-        self.thisptr.SolveLPMAPWithPSDD(&posteriors, &additional_posteriors,
-                                        &value)
+        cdef int solver_status
+        solver_status = self.thisptr.SolveLPMAPWithPSDD(&posteriors,
+                                                        &additional_posteriors,
+                                                        &value)
         p_posteriors, p_additional_posteriors = [], []
         cdef size_t i
         for i in range(posteriors.size()):
@@ -530,7 +567,7 @@ cdef class PFactorGraph:
         for i in range(additional_posteriors.size()):
             p_additional_posteriors.append(additional_posteriors[i])
 
-        return value, p_posteriors, p_additional_posteriors
+        return value, p_posteriors, p_additional_posteriors, solver_status
 
     def set_eta_ad3(self, double eta):
         self.thisptr.SetEtaAD3(eta)

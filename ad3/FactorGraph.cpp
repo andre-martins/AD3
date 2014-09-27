@@ -77,7 +77,7 @@ void FactorGraph::ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph) {
           binary_factor_graph->CreateBinaryVariable();
         extra_variables[index]->
           SetLogPotential(factor_dense->GetAdditionalLogPotentials()[index]);
-      }      
+      }
 
       // Create XOR-with-output factors imposing marginalization constraints.
       vector<int> states(factor_dense->GetNumMultiVariables());
@@ -88,7 +88,6 @@ void FactorGraph::ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph) {
            ++index) {
         factor_dense->GetConfigurationStates(index, &states);
         for (int j = 0; j < factor_dense->GetNumMultiVariables(); ++j) {
-          MultiVariable *multi_variable = factor_dense->GetMultiVariable(j);
           int variable_index = 
             factor_dense->GetVariableIndex(j, states[j]);
           binary_variables_array[variable_index].
@@ -456,6 +455,399 @@ int FactorGraph::AddEvidence(vector<int> *evidence,
 
   if (num_variables == 0) return STATUS_OPTIMAL_INTEGER;
   return STATUS_UNSOLVED;
+}
+
+int FactorGraph::RunMPLP(double lower_bound,
+                         vector<double> *posteriors,
+                         vector<double> *additional_posteriors,
+                         double *value,
+                         double *upper_bound) {
+  timeval start, end;
+  gettimeofday(&start, NULL);
+
+  // Stopping criterion parameters.
+  //double residual_threshold_final = 1e-12;
+  //double residual_threshold = 1e-6;
+  //double gap_threshold = 1e-6;
+
+  // Caching parameters.
+  //vector<bool> factor_is_active(factors_.size(), true);
+  //vector<bool> variable_is_active(variables_.size(), false);
+  //int num_iterations_reset = 50;
+  //double cache_tolerance = 1e-12;
+  //bool caching = true;
+
+  // Optimization status.
+  bool optimal = false;
+  bool reached_lower_bound = false;
+
+  // Miscellaneous.
+  vector<double> log_potentials;
+  vector<double> max_marginals_zeros;
+  vector<double> max_marginals_ones;
+  //bool recompute_everything = true;
+  //vector<double> maps_sum(variables_.size(), 0.0);
+  int t;
+  //double dual_obj_best = 1e100;
+  double primal_obj_best = -1e100;
+  int num_iterations_compute_dual = 50; //1;
+  // If the graph has only dense factores with multi-valued variables,
+  // only need half of the messages.
+  bool multi_graph =  IsMultiDenseFactorGraph();
+  if (multi_graph) {
+    if (verbosity_ > 1) {
+      cout << "Factor graph contains only dense factors with multi-valued variables."
+           << endl;
+    }
+  }
+  if (!multi_graph) {
+    gammas0_.clear();
+    gammas0_.resize(num_links_, 0.0);
+    deltas0_.clear();
+    deltas0_.resize(num_links_, 0.0);
+  }
+  gammas1_.clear();
+  gammas1_.resize(num_links_, 0.0);
+  deltas1_.clear();
+  deltas1_.resize(num_links_, 0.0);
+
+  // Compute primal feasible solutions only if it is a multi-dense graph.
+  // TODO: allow passing a function argument for customizing the rounding
+  // in the client side.
+  bool compute_primal_obj = multi_graph;
+  vector<double> posteriors_feasible;
+  vector<double> additional_posteriors_feasible;
+
+  cout << "store_primal_dual_sequences_ = "
+       << store_primal_dual_sequences_ << endl;
+  if (store_primal_dual_sequences_) {
+    primal_obj_sequence_.clear();
+    dual_obj_sequence_.clear();
+    num_iterations_compute_dual = 1;
+  }
+
+  // Compute extra score to account for variables that are not connected 
+  // to any factor.
+  // TODO: Precompute the value of these variables and eliminate them
+  // from the pool.
+  double extra_score = 0.0;
+  for (int i = 0; i < variables_.size(); ++i) {
+    BinaryVariable *variable = variables_[i];
+    int variable_degree = variable->Degree();
+    double log_potential = variable->GetLogPotential();
+    if (variable_degree == 0 && log_potential > 0) {
+      if (verbosity_ > 0) {
+        cout << "Warning: variable " << i << " is not linked to any factor."
+             << endl;
+      }
+      extra_score += log_potential;
+    }
+  }
+
+  posteriors->resize(variables_.size(), 0.0);
+
+  // Copy all additional log potentials to a vector and save room 
+  // for the posteriors of additional variables.
+  vector<double> additional_log_potentials;
+  vector<int> additional_factor_offsets(factors_.size());
+  CopyAdditionalLogPotentials(&additional_log_potentials,
+                              &additional_factor_offsets);
+  additional_posteriors->resize(additional_log_potentials.size(), 0.0);
+
+  // Map indices of variables in factors.
+  vector<int> indVinF(num_links_, -1);
+  for (int j = 0; j < factors_.size(); ++j) {
+    int factor_degree = factors_[j]->Degree();
+    for (int l = 0; l < factor_degree; ++l) {
+      indVinF[factors_[j]->GetLinkId(l)] = l;
+    }
+  }
+
+  //int num_times_increment = 0;
+  //double dual_obj_prev = 1e100;
+  double dual_obj = extra_score;
+  // Stores each factor contribution to the dual objective.
+  vector<double> dual_obj_factors(factors_.size(), 0.0);
+
+  for (t = 0; t < mplp_max_iterations_; ++t) {
+    // Update deltas_.
+    for (int j = 0; j < factors_.size(); ++j) {
+      Factor *factor = factors_[j];
+      FactorDense *factor_dense = NULL;
+      if (multi_graph) {
+        assert(factor->type() == FactorTypes::FACTOR_MULTI_DENSE);
+        factor_dense = static_cast<FactorDense*>(factor);
+      }
+      int factor_degree = factor->Degree();
+
+      for (int i = 0; i < factor_degree; ++i) {
+        BinaryVariable *variable = factor->GetVariable(i);
+        double gamma0_tot = 0.0;
+        double gamma1_tot = 0.0;
+
+        for (int k = 0; k < variable->Degree(); ++k) {
+          int m = variable->GetLinkId(k);
+          if (!multi_graph) gamma0_tot += gammas0_[m];
+          gamma1_tot += gammas1_[m];
+        }
+
+        for (int k = 0; k < variable->Degree(); ++k) {
+          int m = variable->GetLinkId(k);
+          if (!multi_graph) deltas0_[m] = gamma0_tot - gammas0_[m];
+          deltas1_[m] = variable->GetLogPotential() +
+            gamma1_tot - gammas1_[m];
+        }
+      }
+
+      // Compute max-marginals and update gammas_.
+      log_potentials.resize(factor_degree);
+      if (!multi_graph) max_marginals_zeros.resize(factor_degree);
+      max_marginals_ones.resize(factor_degree);
+      double constant = 0.0;
+      for (int i = 0; i < factor_degree; ++i) {
+        int m = factor->GetLinkId(i);
+        if (!multi_graph) {
+          constant += deltas0_[m];
+          log_potentials[i] = deltas1_[m] - deltas0_[m];
+        } else {
+          log_potentials[i] = deltas1_[m];
+        }
+      }
+      if (!multi_graph) {
+        factor->ComputeMaxMarginals(log_potentials,
+                                    factor->GetAdditionalLogPotentials(),
+                                    &max_marginals_zeros,
+                                    &max_marginals_ones);
+      } else {
+        assert(factor->type() == FactorTypes::FACTOR_MULTI_DENSE);
+        factor_dense->ComputeMaxMarginalsMulti(log_potentials,
+                                               factor->GetAdditionalLogPotentials(),
+                                               &max_marginals_ones);
+      }
+
+      for (int i = 0; i < factor_degree; ++i) {
+        int m = factor->GetLinkId(i);
+        if (!multi_graph) {
+          gammas0_[m] = (max_marginals_zeros[i] + constant) /
+            static_cast<double>(factor_degree) - deltas0_[m];
+          gammas1_[m] = (max_marginals_ones[i] + constant) /
+            static_cast<double>(factor_degree) - deltas1_[m];
+        } else {
+          gammas1_[m] = max_marginals_ones[i] /
+            static_cast<double>(factor_dense->GetNumMultiVariables())
+            - deltas1_[m];
+        }
+      }
+    }
+
+    bool compute_dual = false;
+    bool compute_primal = false;
+    if (0 == ((t + 1) % num_iterations_compute_dual)) {
+      compute_dual = true;
+      compute_primal = compute_primal_obj;
+    }
+
+    // Compute dual objective.
+    if (compute_dual) {
+      double dual_obj = 0.0;
+
+      // First, get the contribution of the variables to the dual objective.
+      if (!multi_graph) {
+        for (int i = 0; i < variables_.size(); ++i) {
+          BinaryVariable *variable = variables_[i];
+
+          double gamma0_tot = 0.0;
+          double gamma1_tot = 0.0;
+          for (int j = 0; j < variable->Degree(); j++) {
+            int m = variable->GetLinkId(j);
+            gamma0_tot += gammas0_[m];
+            gamma1_tot += gammas1_[m];
+          }
+
+          double val = gamma1_tot - gamma0_tot + variable->GetLogPotential();
+          if (val <= 0.0) {
+            dual_obj += gamma0_tot;
+          } else {
+            dual_obj += gamma1_tot + variable->GetLogPotential();
+          }
+          //(*posteriors)[i] = val;
+          (*posteriors)[i] = (val < 0)? 0.0 : 1.0;
+        }
+      } else { // multi_graph.
+
+        for (int i = 0; i < multi_variables_.size(); ++i) {
+          MultiVariable *multi_variable = multi_variables_[i];
+
+          int best = -1;
+          double best_val = -1e100;
+          for (int k = 0; k < multi_variable->GetNumStates(); ++k) {
+            BinaryVariable *variable = multi_variable->GetState(k);
+            double gamma1_tot = 0.0;
+            for (int j = 0; j < variable->Degree(); j++) {
+              int m = variable->GetLinkId(j);
+              gamma1_tot += gammas1_[m];
+            }
+            double val = gamma1_tot + variable->GetLogPotential();
+            if (best < 0 || best_val < val) {
+              best = k;
+              best_val = val;
+            }
+            (*posteriors)[variable->GetId()] = 0.0;
+          }
+          dual_obj += best_val;
+          (*posteriors)[multi_variable->GetState(best)->GetId()] = 1.0;
+        }
+      }
+
+      // Now, get the contribution of the factors to the dual objective.
+      for (int j = 0; j < factors_.size(); ++j) {
+        Factor *factor = factors_[j];
+        int factor_degree = factor->Degree();
+        vector<double> variable_posteriors(factor_degree, 0.0);
+        vector<double> factor_additional_posteriors(factor->
+          GetAdditionalLogPotentials().size(), 0.0);
+        double val = 0.0;
+        //int len = factor_degree;
+        log_potentials.resize(factor_degree);
+        for (int i = 0; i < factor_degree; ++i) {
+          int m = factor->GetLinkId(i);
+          if (!multi_graph) {
+            log_potentials[i] = gammas0_[m] - gammas1_[m];
+          } else {
+            log_potentials[i] = -gammas1_[m];
+          }
+        }
+
+        factor->SolveMAP(log_potentials,
+                         factor->GetAdditionalLogPotentials(),
+                         &variable_posteriors,
+                         &factor_additional_posteriors, &val);
+        if (!multi_graph) {
+          for (int i = 0; i < factor_degree; ++i) {
+            int m = factor->GetLinkId(i);
+            val -= gammas0_[m];
+          }
+        }
+
+        // Save the additionals posteriors.
+        int offset = additional_factor_offsets[j];
+        for (int i = 0; i < factor_additional_posteriors.size(); ++i) {
+          (*additional_posteriors)[offset] = factor_additional_posteriors[i];
+          ++offset;
+        }
+
+        dual_obj += val;
+      }
+
+      if (dual_obj < lower_bound) {
+        reached_lower_bound = true;
+        break;
+      }
+
+      // Note: this "primal" may not be feasible if there are hard constraints.
+      double primal_obj = -1e100;
+      if (compute_primal) {
+        if (multi_graph) {
+          posteriors_feasible.resize(posteriors->size());
+          additional_posteriors_feasible.resize(additional_posteriors->size());
+          for (int i = 0; i < variables_.size(); ++i) {
+            posteriors_feasible[i] = (*posteriors)[i];
+          }
+          for (int i = 0; i < additional_log_potentials.size(); ++i) {
+            additional_posteriors_feasible[i] = (*additional_posteriors)[i];
+          }
+
+          RoundMultiDensePrimalVariables(additional_factor_offsets,
+                                         &posteriors_feasible,
+                                         &additional_posteriors_feasible);
+
+          primal_obj = 0.0;
+          for (int i = 0; i < variables_.size(); ++i) {
+            primal_obj += posteriors_feasible[i] *
+              variables_[i]->GetLogPotential();
+          }
+
+          // If there are higher order potentials (e.g. for pairs)
+          // should loop here for factors to
+          // add their contribution.
+          for (int i = 0; i < additional_log_potentials.size(); ++i) {
+            primal_obj += additional_posteriors_feasible[i] *
+              additional_log_potentials[i];
+          }
+        }
+
+        if (primal_obj > primal_obj_best) {
+          primal_obj_best = primal_obj;
+          // TODO: save the current posteriors.
+        }
+      }
+
+      // Print information.
+      gettimeofday(&end, NULL);
+      if (verbosity_ > 1) {
+        cout << "Iteration = " << t
+             << "\tDual obj = " << dual_obj
+             << "\tPrimal obj = " << primal_obj
+             << "\tBest primal obj = " << primal_obj_best
+             << "\tTime = " << ((double) diff_ms(end,start))/1000.0 << " sec."
+             << endl;
+      }
+
+      if (store_primal_dual_sequences_) {
+        primal_obj_sequence_.push_back(primal_obj);
+        dual_obj_sequence_.push_back(dual_obj);
+      }
+    }
+  }
+
+  bool fractional = false;
+  *value = 0.0;
+  for (int i = 0; i < variables_.size(); ++i) {
+    if (!NEARLY_BINARY((*posteriors)[i], 1e-12)) fractional = true;
+    *value += (*posteriors)[i] * variables_[i]->GetLogPotential();
+  }
+  for (int i = 0; i < additional_log_potentials.size(); ++i) {
+    *value += (*additional_posteriors)[i] * additional_log_potentials[i];
+  }
+
+  if (verbosity_ > 1) {
+    cout << "Solution value after "
+         << t << " iterations (MPLP) = "
+         << *value << endl;
+  }
+  *upper_bound = dual_obj;
+
+  gettimeofday(&end, NULL);
+  if (verbosity_ > 1) {
+    cout << "Took " << ((double) diff_ms(end,start))/1000.0 << " sec." << endl;
+  }
+
+  optimal = false; // TODO(atm): check optimality via weak agreement.
+  if (optimal) {
+    if (!fractional) {
+      if (verbosity_ > 1) {
+        cout << "Solution is integer." << endl;
+      }
+      return STATUS_OPTIMAL_INTEGER;
+    } else {
+      if (verbosity_ > 1) {
+        cout << "Solution is fractional." << endl;
+      }
+      return STATUS_OPTIMAL_FRACTIONAL;
+    }
+  } else {
+    if (reached_lower_bound) {
+      if (verbosity_ > 1) {
+        cout << "Reached lower bound: " << lower_bound << "." << endl;
+      }
+      return STATUS_INFEASIBLE;
+    } else {
+      if (verbosity_ > 1) {
+        cout << "Solution is only approximate." << endl;
+      }
+      return STATUS_UNSOLVED;
+    }
+  }
 }
 
 int FactorGraph::RunPSDD(double lower_bound,
@@ -852,7 +1244,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   vector<double> posteriors_zero;
   vector<double> additional_posteriors_zero;
   double value_zero;
-  double upper_bound_zero;
+  //double upper_bound_zero;
   double score = variables_[variable_to_branch]->GetLogPotential();
   variables_[variable_to_branch]->SetLogPotential(score - infinite_potential);
   int status_zero = RunBranchAndBound(cumulative_value,
@@ -875,7 +1267,7 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   vector<double> posteriors_one;
   vector<double> additional_posteriors_one;
   double value_one;
-  double upper_bound_one;
+  //double upper_bound_one;
   score = variables_[variable_to_branch]->GetLogPotential();
   variables_[variable_to_branch]->SetLogPotential(score + infinite_potential);
   int status_one = RunBranchAndBound(cumulative_value + infinite_potential,
@@ -962,7 +1354,7 @@ int FactorGraph::RunAD3(double lower_bound,
   if (multi_graph) {
     if (verbosity_ > 1) {
       cout << "Factor graph contains only dense factors with multi-valued variables."
-	   << endl;
+           << endl;
     }
   }
 

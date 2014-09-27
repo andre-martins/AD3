@@ -150,6 +150,54 @@ void FactorXOR::SolveQP(const vector<double> &variable_log_potentials,
   }
 }
 
+// Compute max-marginals.
+void FactorXOR::ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                                    const vector<double> &additional_log_potentials,
+                                    vector<double> *max_marginals_zeros,
+                                    vector<double> *max_marginals_ones) {
+  max_marginals_zeros->resize(variable_log_potentials.size());
+  max_marginals_ones->resize(variable_log_potentials.size());
+
+  // Create a local copy of the log potentials.
+  vector<double> log_potentials(variable_log_potentials);
+
+  int first = -1, second = -1;
+  double delta = 0.0;
+  double m0, m1;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) {
+      delta += log_potentials[f];
+      log_potentials[f] = -log_potentials[f];
+    }
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (first < 0 || log_potentials[f] > log_potentials[first]) {
+      second = first;
+      first = f;
+    } else if (second < 0 || log_potentials[f] > log_potentials[second]) {
+      second = f;
+    }
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    m1 = log_potentials[f];
+    if (f == first) {
+      m0 = log_potentials[second];
+    } else {
+      m0 = log_potentials[first];
+    }
+
+    if (negated_[f]) {
+      (*max_marginals_zeros)[f] = delta + m1;
+      (*max_marginals_ones)[f] = delta + m0;
+    } else {
+      (*max_marginals_zeros)[f] = delta + m0;
+      (*max_marginals_ones)[f] = delta + m1;
+    }
+  }
+}
+
 // Add evidence information to the factor.
 // Returns 0 if nothing changed.
 // Returns 1 if new evidence was set or new links were disabled,
@@ -248,7 +296,7 @@ void FactorAtMostOne::SolveMAP(const vector<double> &variable_log_potentials,
     all_zeros = false;
   }
 
-  for (int f = 0; f < binary_variables_.size(); f++) {
+  for (int f = 0; f < binary_variables_.size(); ++f) {
     if (negated_[f]) {
       (*variable_posteriors)[f] = 1.0;
     } else {
@@ -300,6 +348,55 @@ void FactorAtMostOne::SolveQP(const vector<double> &variable_log_potentials,
   for (int f = 0; f < binary_variables_.size(); ++f) {
     if (negated_[f]) {
       (*variable_posteriors)[f] = 1 - (*variable_posteriors)[f];
+    }
+  }
+}
+
+// Compute max-marginals.
+void FactorAtMostOne::ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                                          const vector<double> &additional_log_potentials,
+                                          vector<double> *max_marginals_zeros,
+                                          vector<double> *max_marginals_ones) {
+  max_marginals_zeros->resize(variable_log_potentials.size());
+  max_marginals_ones->resize(variable_log_potentials.size());
+
+  // Create a local copy of the log potentials.
+  vector<double> log_potentials(variable_log_potentials);
+
+  int first = -1, second = -1;
+  double delta = 0.0;
+  double m0, m1;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) {
+      delta += log_potentials[f];
+      log_potentials[f] = -log_potentials[f];
+    }
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (first < 0 || log_potentials[f] > log_potentials[first]) {
+      second = first;
+      first = f;
+    } else if (second < 0 || log_potentials[f] > log_potentials[second]) {
+      second = f;
+    }
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    m1 = log_potentials[f];
+    if (f == first) {
+      m0 = log_potentials[second];
+    } else {
+      m0 = log_potentials[first];
+    }
+    if (m0 < 0.0) m0 = 0.0; // The all-zeros configuration.
+
+    if (negated_[f]) {
+      (*max_marginals_zeros)[f] = delta + m1;
+      (*max_marginals_ones)[f] = delta + m0;
+    } else {
+      (*max_marginals_zeros)[f] = delta + m0;
+      (*max_marginals_ones)[f] = delta + m1;
     }
   }
 }
@@ -455,6 +552,69 @@ void FactorOR::SolveQP(const vector<double> &variable_log_potentials,
   for (int f = 0; f < binary_variables_.size(); ++f) {
     if (negated_[f]) {
       (*variable_posteriors)[f] = 1 - (*variable_posteriors)[f];
+    }
+  }
+}
+
+// Compute max-marginals.
+void FactorOR::ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                                          const vector<double> &additional_log_potentials,
+                                          vector<double> *max_marginals_zeros,
+                                          vector<double> *max_marginals_ones) {
+  max_marginals_zeros->resize(variable_log_potentials.size());
+  max_marginals_ones->resize(variable_log_potentials.size());
+
+  // Create a local copy of the log potentials.
+  vector<double> log_potentials(variable_log_potentials);
+
+  int first = -1, second = -1;
+  double delta = 0.0;
+  double m0, m1;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) {
+      delta += log_potentials[f];
+      log_potentials[f] = -log_potentials[f];
+    }
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (first < 0 || log_potentials[f] > log_potentials[first]) {
+      second = first;
+      first = f;
+    } else if (second < 0 || log_potentials[f] > log_potentials[second]) {
+      second = f;
+    }
+  }
+
+  // Find the value of the most likely configuration ignoring the constraints.
+  double value = 0.0;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (log_potentials[f] > 0) value += log_potentials[f];
+  }
+
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (log_potentials[f] > 0) {
+      // f participates in the most likely configuration.
+      m1 = value;
+      m0 = value - log_potentials[f];
+    } else {
+      m1 = value + log_potentials[f];
+      m0 = value;
+    }
+    if (m0 <= 0.0) { // assert(m0 == 0.0);
+      if (f == first) {
+        m0 += log_potentials[second];
+      } else {
+        m0 += log_potentials[first];
+      }
+    }
+
+    if (negated_[f]) {
+      (*max_marginals_zeros)[f] = delta + m1;
+      (*max_marginals_ones)[f] = delta + m0;
+    } else {
+      (*max_marginals_zeros)[f] = delta + m0;
+      (*max_marginals_ones)[f] = delta + m1;
     }
   }
 }
@@ -688,6 +848,96 @@ void FactorOROUT::SolveQP(const vector<double> &variable_log_potentials,
 
   for (f = 0; f < binary_variables_.size(); ++f) {
     if (negated_[f]) (*variable_posteriors)[f] = 1 - (*variable_posteriors)[f];
+  }
+}
+
+// Compute max-marginals.
+void FactorOROUT::ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                                      const vector<double> &additional_log_potentials,
+                                      vector<double> *max_marginals_zeros,
+                                      vector<double> *max_marginals_ones) {
+  max_marginals_zeros->resize(variable_log_potentials.size());
+  max_marginals_ones->resize(variable_log_potentials.size());
+
+  // Create a local copy of the log potentials.
+  vector<double> log_potentials(variable_log_potentials);
+
+  int first = -1, second = -1;
+  double delta = 0.0;
+  double m0, m1;
+  for (int f = 0; f < binary_variables_.size(); ++f) {
+    if (negated_[f]) {
+      delta += log_potentials[f];
+      log_potentials[f] = -log_potentials[f];
+    }
+  }
+
+  // Exclude the output variable from this search.
+  for (int f = 0; f < binary_variables_.size() - 1; ++f) {
+    if (first < 0 || log_potentials[f] > log_potentials[first]) {
+      second = first;
+      first = f;
+    } else if (second < 0 || log_potentials[f] > log_potentials[second]) {
+      second = f;
+    }
+  }
+
+  // Find the value of the most likely configuration ignoring the constraints.
+  // Exclude the output variable from this search.
+  double value = 0.0;
+  for (int f = 0; f < binary_variables_.size() - 1; ++f) {
+    if (log_potentials[f] > 0) value += log_potentials[f];
+  }
+
+  int f_last = binary_variables_.size() - 1;
+  for (int f = 0; f < binary_variables_.size() - 1; ++f) {
+    // Assume first that at least one of the input variables
+    // must be 1; then work out the all-zeros case.
+    if (log_potentials[f] > 0) {
+      // f participates in the most likely configuration.
+      m1 = value;
+      m0 = value - log_potentials[f];
+    } else {
+      m1 = value + log_potentials[f];
+      m0 = value;
+    }
+    if (m0 <= 0.0) { // assert(m0 == 0.0);
+      if (f == first) {
+        m0 += log_potentials[second];
+      } else {
+        m0 += log_potentials[first];
+      }	
+    }
+    m1 += log_potentials[f_last];
+    m0 += log_potentials[f_last];
+
+    // Now check if the all-zeros case is more favourable.
+    if (m0 <= 0.0) m0 = 0.0;
+
+    if (negated_[f]) {
+      (*max_marginals_zeros)[f] = delta + m1;
+      (*max_marginals_ones)[f] = delta + m0;
+    } else {
+      (*max_marginals_zeros)[f] = delta + m0;
+      (*max_marginals_ones)[f] = delta + m1;
+    }
+  }
+
+  // Compute the max-marginals for the output variable.
+  int f = f_last;
+  m1 = value;
+  m0 = 0.0;
+  if (m1 <= 0.0) { // assert(m1 == 0.0);
+    m1 += log_potentials[first];
+  }
+  m1 += log_potentials[f_last];
+
+  if (negated_[f]) {
+    (*max_marginals_zeros)[f] = delta + m1;
+    (*max_marginals_ones)[f] = delta + m0;
+  } else {
+    (*max_marginals_zeros)[f] = delta + m0;
+    (*max_marginals_ones)[f] = delta + m1;
   }
 }
 
@@ -1071,6 +1321,31 @@ void FactorPAIR::SolveQP(const vector<double> &variable_log_potentials,
     (*additional_posteriors)[0] = 
       (*variable_posteriors)[0] - (*additional_posteriors)[0];
   }
+}
+
+// Compute max-marginals.
+// Remark: assume inputs are NOT negated.
+void FactorPAIR::ComputeMaxMarginals(const vector<double> &variable_log_potentials,
+                                    const vector<double> &additional_log_potentials,
+                                    vector<double> *max_marginals_zeros,
+                                    vector<double> *max_marginals_ones) {
+  max_marginals_zeros->resize(variable_log_potentials.size());
+  max_marginals_ones->resize(variable_log_potentials.size());
+
+  double p[4] = { 0.0, // 00
+                  variable_log_potentials[1], // 01
+                  variable_log_potentials[0], // 10
+                  variable_log_potentials[0] + variable_log_potentials[1] +
+                    additional_log_potentials[0] // 11
+  };
+
+  // Compute max marginals for the first variable.
+  (*max_marginals_zeros)[0] = MAX(p[0], p[1]);
+  (*max_marginals_ones)[0] = MAX(p[2], p[3]);
+
+  // Compute max marginals for the second variable.
+  (*max_marginals_zeros)[1] = MAX(p[0], p[2]);
+  (*max_marginals_ones)[1] = MAX(p[1], p[3]);
 }
 
 } // namespace AD3

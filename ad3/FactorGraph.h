@@ -332,7 +332,7 @@ class FactorGraph {
   // belong to any factor, and if so, assign a XOR factor
   // to the corresponding binary variables.
   void FixMultiVariablesWithoutFactors();
-  
+
   // Convert a factor graph with multi-valued variables to one which only
   // contains binary variables and hard constraint factors.
   void ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph);
@@ -341,7 +341,7 @@ class FactorGraph {
   bool IsIsingFactorGraph() {
     for (int j = 0; j < factors_.size(); ++j) {
       if (factors_[j]->type() != FactorTypes::FACTOR_PAIR) {
-	return false;
+        return false;
       }
     }
     return true;
@@ -430,6 +430,16 @@ class FactorGraph {
   }
   void SetEtaPSDD(double eta) { psdd_eta_ = eta; }
   void EnableCachingPSDD(bool enable=true) { psdd_enable_caching_ = enable; }
+  void SetMaxIterationsMPLP(int max_iterations) { 
+    mplp_max_iterations_ = max_iterations;
+  }
+
+  int SolveLPMAPWithMPLP(vector<double> *posteriors,
+                         vector<double> *additional_posteriors,
+                         double *value) {
+    double upper_bound;
+    return RunMPLP(-1e100, posteriors, additional_posteriors, value, &upper_bound);
+  }
 
   int SolveLPMAPWithAD3(vector<double> *posteriors,
                         vector<double> *additional_posteriors,
@@ -482,8 +492,18 @@ class FactorGraph {
     psdd_enable_caching_ = true;
   }
 
+  void ResetParametersMPLP() {
+    mplp_max_iterations_ = 1000;
+  }
+
   void CopyAdditionalLogPotentials(vector<double>* additional_log_potentials,
                                    vector<int>* factor_indices);
+
+  int RunMPLP(double lower_bound,
+              vector<double> *posteriors, 
+              vector<double> *additional_posteriors, 
+              double *value,
+              double *upper_bound);
 
   int RunPSDD(double lower_bound,
               vector<double> *posteriors, 
@@ -542,10 +562,19 @@ class FactorGraph {
   // Allow caching the subproblems.
   bool psdd_enable_caching_; 
 
+  // Parameters for MPLP:
+  int mplp_max_iterations_; // Maximum number of iterations.
+
   // Parameters for AD3 and PSDD:
   vector<double> lambdas_;
   vector<double> maps_;
   vector<double> maps_av_;
+
+  // Parameters for MPLP:
+  vector<double> gammas0_;
+  vector<double> gammas1_;
+  vector<double> deltas0_;
+  vector<double> deltas1_;
 };
 
 } // namespace AD3
