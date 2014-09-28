@@ -518,8 +518,6 @@ int FactorGraph::RunMPLP(double lower_bound,
   vector<double> posteriors_feasible;
   vector<double> additional_posteriors_feasible;
 
-  cout << "store_primal_dual_sequences_ = "
-       << store_primal_dual_sequences_ << endl;
   if (store_primal_dual_sequences_) {
     primal_obj_sequence_.clear();
     dual_obj_sequence_.clear();
@@ -794,7 +792,7 @@ int FactorGraph::RunMPLP(double lower_bound,
       }
 
       if (store_primal_dual_sequences_) {
-        primal_obj_sequence_.push_back(primal_obj);
+        primal_obj_sequence_.push_back(primal_obj_best);
         dual_obj_sequence_.push_back(dual_obj);
       }
     }
@@ -882,10 +880,32 @@ int FactorGraph::RunPSDD(double lower_bound,
   vector<double> maps_sum(variables_.size(), 0.0);
   int t;
   double dual_obj_best = 1e100, primal_rel_obj_best = -1e100;
-  //double primal_obj_best = -1e100;
+  double primal_obj_best = -1e100;
   int num_iterations_compute_dual = 50;
 
-  // Compute extra score to account for variables that are not connected 
+  // Check if the graph has only dense factores with multi-valued variables.
+  bool multi_graph =  IsMultiDenseFactorGraph();
+  if (multi_graph) {
+    if (verbosity_ > 1) {
+      cout << "Factor graph contains only dense factors with multi-valued variables."
+           << endl;
+    }
+  }
+
+  // Compute primal feasible solutions only if it is a multi-dense graph.
+  // TODO: allow passing a function argument for customizing the rounding
+  // in the client side.
+  bool compute_primal_obj = multi_graph;
+  vector<double> posteriors_feasible;
+  vector<double> additional_posteriors_feasible;
+
+  if (store_primal_dual_sequences_) {
+    primal_obj_sequence_.clear();
+    dual_obj_sequence_.clear();
+    num_iterations_compute_dual = 1;
+  }
+
+  // Compute extra score to account for variables that are not connected
   // to any factor.
   // TODO: Precompute the value of these variables and eliminate them
   // from the pool.
@@ -1054,11 +1074,14 @@ int FactorGraph::RunPSDD(double lower_bound,
     // If primal residual is low enough or enough iterations 
     // have passed, compute the dual.
     bool compute_primal_rel = false;
+    bool compute_primal = false;
     // TODO: && dual_residual < residual_threshold?
     if (primal_residual < residual_threshold) {
       compute_primal_rel = true;
-    } else if (t > 0 && 0 == (t % num_iterations_compute_dual)) {
+      compute_primal = compute_primal_obj;
+    } else if (0 == ((t + 1) % num_iterations_compute_dual)) {
       compute_primal_rel = true;
+      compute_primal = compute_primal_obj;
     }
 
     // Check if dual improved so that num_times_increment 
@@ -1093,21 +1116,67 @@ int FactorGraph::RunPSDD(double lower_bound,
     if (primal_rel_obj_best < primal_rel_obj) {
       primal_rel_obj_best = primal_rel_obj; 
     }
+
+    // Note: this "primal" may not be feasible if there are hard constraints.
+    double primal_obj = -1e100;
+    if (compute_primal) {
+      if (multi_graph) {
+        posteriors_feasible.resize(maps_av_.size());
+        additional_posteriors_feasible.resize(additional_posteriors->size());
+        for (int i = 0; i < variables_.size(); ++i) {
+          posteriors_feasible[i] = maps_av_[i];
+        }
+        for (int i = 0; i < additional_log_potentials.size(); ++i) {
+          additional_posteriors_feasible[i] = (*additional_posteriors)[i];
+        }
+
+        RoundMultiDensePrimalVariables(additional_factor_offsets,
+                                       &posteriors_feasible,
+                                       &additional_posteriors_feasible);
+
+        primal_obj = 0.0;
+        for (int i = 0; i < variables_.size(); ++i) {
+          primal_obj += posteriors_feasible[i] *
+            variables_[i]->GetLogPotential();
+        }
+
+        // If there are higher order potentials (e.g. for pairs)
+        // should loop here for factors to
+        // add their contribution.
+        for (int i = 0; i < additional_log_potentials.size(); ++i) {
+          primal_obj += additional_posteriors_feasible[i] *
+            additional_log_potentials[i];
+        }
+      }
+
+      if (primal_obj > primal_obj_best) {
+        primal_obj_best = primal_obj;
+        // TODO: save the current posteriors.
+      }
+    }
+
     if (compute_primal_rel) {
       gettimeofday(&end, NULL);
       if (verbosity_ > 1) {
         cout << "Iteration = " << t
              << "\tDual obj = " << dual_obj
              << "\tPrimal rel obj = " << primal_rel_obj
+             << "\tPrimal obj = " << primal_obj
              << "\tPrimal residual = " << primal_residual
              << "\tBest dual obj = " << dual_obj_best
              << "\tBest primal rel obj = " << primal_rel_obj_best
-             << "\tCached factors = " << 
+             << "\tBest primal obj = " << primal_obj_best
+             << "\tCached factors = " <<
           static_cast<double>(num_inactive_factors) /
           static_cast<double>(factors_.size())
              << "\teta = " << eta
              << "\tTime = " << ((double) diff_ms(end,start))/1000.0 << " sec."
-             << endl; 
+             << endl;
+      }
+
+      if (store_primal_dual_sequences_) {
+        primal_obj_sequence_.push_back(primal_obj_best);
+        dual_obj_sequence_.push_back(dual_obj_best);
       }
     }
     //double gap = dual_obj_best - primal_rel_obj_best;
@@ -1686,8 +1755,8 @@ int FactorGraph::RunAD3(double lower_bound,
       }
       
       if (store_primal_dual_sequences_) {
-	primal_obj_sequence_.push_back(primal_obj);
-	dual_obj_sequence_.push_back(dual_obj);
+	primal_obj_sequence_.push_back(primal_obj_best);
+	dual_obj_sequence_.push_back(dual_obj_best);
 #ifdef COUNT_ORACLE_CALLS
 	num_oracle_calls_sequence_.push_back(num_oracle_calls);
 #endif	

@@ -47,6 +47,7 @@ cdef extern from "../ad3/FactorGraph.h" namespace "AD3":
                                double* value)
         void SetEtaPSDD(double eta)
         void SetMaxIterationsPSDD(int max_iterations)
+        void EnableCachingPSDD(bool enable)
         int SolveLPMAPWithPSDD(vector[double]* posteriors,
                                vector[double]* additional_posteriors,
                                double* value)
@@ -552,6 +553,9 @@ cdef class PFactorGraph:
     def set_max_iterations_psdd(self, int max_iterations):
         self.thisptr.SetMaxIterationsPSDD(max_iterations)
 
+    def enable_caching_psdd(self, bool enable):
+        self.thisptr.EnableCachingPSDD(enable)
+
     def solve_lp_map_psdd(self):
         cdef vector[double] posteriors
         cdef vector[double] additional_posteriors
@@ -613,7 +617,7 @@ cdef class PFactorGraph:
         for i in range(additional_posteriors.size()):
             p_additional_posteriors.append(additional_posteriors[i])
 
-        return value, p_posteriors, p_additional_posteriors
+        return value, p_posteriors, p_additional_posteriors, solver_status
         
     def get_dual_variables(self):
         cdef vector[double] dual_variables = self.thisptr.GetDualVariables()
