@@ -1,8 +1,6 @@
 from setuptools import setup
 from setuptools.command.bdist_egg import bdist_egg
-#from distutils.command.build_clib import build_clib
 from setuptools.extension import Extension
-from Cython.Distutils import build_ext
 
 libad3 = ('ad3', {
     'sources': ['ad3/FactorGraph.cpp',
@@ -41,10 +39,10 @@ setup(name='ad3',
       package_dir={'ad3': 'python/ad3'},
       packages=['ad3'],
       libraries=[libad3],
-      cmdclass={'build_ext': build_ext, 'bdist_egg': bdist_egg_fix},
+      cmdclass={'bdist_egg': bdist_egg_fix},
       #cmdclass={'build_ext': build_ext},
       ext_modules=[Extension("ad3.factor_graph",
-                             ["python/factor_graph.pyx"],
+                             ["python/factor_graph.cpp"],
                              include_dirs=["ad3"],
                              language="c++",
                              )])
