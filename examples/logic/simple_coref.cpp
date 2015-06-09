@@ -30,6 +30,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "ad3/FactorGraph.h"
+#include "ad3/Utils.h"
 #include <cstdlib>
 
 int main(int argc, char **argv) {

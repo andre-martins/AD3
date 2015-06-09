@@ -19,7 +19,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <time.h>
 #else
 #include <sys/time.h>
@@ -28,7 +28,7 @@
 #include <string>
 #include <algorithm>
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h> //I've ommited this line.
 #ifndef _WINSOCKAPI_
 struct timeval {

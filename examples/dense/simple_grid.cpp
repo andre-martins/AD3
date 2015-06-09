@@ -30,6 +30,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "ad3/FactorGraph.h"
+#include "ad3/Utils.h"
 #include "FactorSequence.h"
 #include <cstdlib>
 
