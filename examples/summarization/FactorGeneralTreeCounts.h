@@ -19,7 +19,7 @@
 #ifndef FACTOR_GENERAL_TREE_COUNTS
 #define FACTOR_GENERAL_TREE_COUNTS
 
-#include "ad3/GenericFactor.h"
+#include "../../ad3/GenericFactor.h"
 #include <limits>
 
 #define USE_MAX_BINS

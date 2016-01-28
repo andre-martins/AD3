@@ -19,7 +19,7 @@
 #ifndef FACTOR_SEQUENCE
 #define FACTOR_SEQUENCE
 
-#include "ad3/GenericFactor.h"
+#include "../../ad3/GenericFactor.h"
 
 namespace AD3 {
 
