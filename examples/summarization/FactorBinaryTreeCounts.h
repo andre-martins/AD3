@@ -19,8 +19,8 @@
 #ifndef FACTOR_BINARY_TREE_COUNTS
 #define FACTOR_BINARY_TREE_COUNTS
 
-#include "ad3/GenericFactor.h"
-#include "examples/summarization/FactorGeneralTreeCounts.h"
+#include "../../ad3/GenericFactor.h"
+#include "FactorGeneralTreeCounts.h"
 #include <limits>
 
 namespace AD3 {
