@@ -19,7 +19,7 @@
 #ifndef FACTOR_TREE
 #define FACTOR_TREE
 
-#include "ad3/GenericFactor.h"
+#include "../../ad3/GenericFactor.h"
 
 namespace AD3 {
 
