@@ -36,8 +36,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#include "ad3/FactorGraph.h"
-#include "ad3/Utils.h"
+#include "../../ad3/FactorGraph.h"
+#include "../../ad3/Utils.h"
 #include "FactorHeadAutomaton.h"
 #include "FactorTree.h"
 #include <cstdlib>
