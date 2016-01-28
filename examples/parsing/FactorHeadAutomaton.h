@@ -19,7 +19,7 @@
 #ifndef FACTOR_HEAD_AUTOMATON
 #define FACTOR_HEAD_AUTOMATON
 
-#include "ad3/GenericFactor.h"
+#include "../../ad3/GenericFactor.h"
 
 namespace AD3 {
 
