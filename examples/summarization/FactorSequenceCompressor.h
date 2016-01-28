@@ -19,7 +19,7 @@
 #ifndef FACTOR_SEQUENCE_COMPRESSOR
 #define FACTOR_SEQUENCE_COMPRESSOR
 
-#include "ad3/GenericFactor.h"
+#include "../../ad3/GenericFactor.h"
 
 // Need to include this because of the class AD3::Sibling.
 #include "examples/parsing/FactorHeadAutomaton.h"
