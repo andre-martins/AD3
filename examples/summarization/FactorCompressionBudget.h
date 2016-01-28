@@ -19,7 +19,7 @@
 #ifndef FACTOR_COMPRESSION_BUDGET
 #define FACTOR_COMPRESSION_BUDGET
 
-#include "ad3/GenericFactor.h"
+#include "../../ad3/GenericFactor.h"
 #include <limits>
 
 namespace AD3 {
