@@ -15,6 +15,8 @@ def general_constrained_graph(unaries, edges, edge_weights, constraints, verbose
     - negated is a list of boolean indicated if the unary must be negated. Again, if all values are the same, pass a single boolean value instead of a list 
     
     The graph is binarized as explained in Martins et al. ICML 2011 paper: "An Augmented Lagrangian Approach to Constrained MAP Inference".
+    
+    NOTE: I had to re-compile AD3 since v2.0.1 from Anaconda missed the create_binary_variable method
     JL Meunier - 10/2016
     """
     if unaries.shape[1] != edge_weights.shape[1]:
