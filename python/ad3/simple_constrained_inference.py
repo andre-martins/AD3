@@ -17,7 +17,15 @@ def general_constrained_graph(unaries, edges, edge_weights, constraints, verbose
     The graph is binarized as explained in Martins et al. ICML 2011 paper: "An Augmented Lagrangian Approach to Constrained MAP Inference".
     
     NOTE: I had to re-compile AD3 since v2.0.1 from Anaconda missed the create_binary_variable method
-    JL Meunier - 10/2016
+    
+    JL Meunier - October 2016
+    
+    Developed for the EU project READ. The READ project has received funding 
+    from the European Union's Horizon 2020 research and innovation programme 
+    under grant agreement No 674943
+    
+    Copyright Xerox
+    
     """
     if unaries.shape[1] != edge_weights.shape[1]:
         raise ValueError("incompatible shapes of unaries"
