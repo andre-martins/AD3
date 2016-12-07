@@ -1,8 +1,7 @@
 import itertools
 import numpy as np
 #from numpy.testing.utils import assert_array_almost_equal
-import factor_graph as fg
-
+from . import factor_graph as fg
 
 def simple_grid(unaries, pairwise, verbose=1):
     height, width, n_states = unaries.shape

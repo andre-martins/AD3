@@ -1,4 +1,6 @@
 *.pyc
 *.so
 *.*~
-factor_graph.cpp
+*.egg-info
+build
+dist
