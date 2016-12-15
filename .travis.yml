@@ -7,18 +7,11 @@ notifications:
   email: false
 python:
   - "2.7"
-  - "2.6"
-before_install :
-  - sudo apt-get install -qq 
-language: python
-notifications:
-  email: false
-python:
-  - "2.7"
-  - "2.6"
+  - "3.5"
 before_install :
   - sudo apt-get install -qq libboost-dev
 install:
-  - pip install -r --use-mirrors requirements.txt
-  - python setup.py install
+  - python setup.py bdist_wheel
+  - pip install --pre --no-index --find-links dist/ ad3
+
 script: true
