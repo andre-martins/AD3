@@ -142,6 +142,15 @@ cdef extern from "../examples/summarization/FactorGeneralTreeCounts.h" namespace
         FactorGeneralTreeCounts()
         void Initialize(vector[int] parents, vector[int] num_states)
 
+cdef extern from "../examples/parsing/FactorTree.h" namespace "AD3":
+    cdef cppclass Arc:
+        Arc(int, int)
+
+    cdef cppclass FactorTree(Factor):
+        FactorTree()
+        void Initialize(int, vector[Arc *])
+        int RunCLE(vector[double]&, vector[int] *v, double *d)
+
 # wrap them into python extension types
 cdef class PBinaryVariable:
     cdef BinaryVariable *thisptr
@@ -343,8 +352,7 @@ cdef class PFactorBinaryTreeCounts(PFactor):
             (<FactorBinaryTreeCounts*>self.thisptr).Initialize(parents,
                                                                counts_for_budget)
             
-        
-        
+
 cdef class PFactorGeneralTree(PFactor):
     def __cinit__(self, allocate=True):
         self.allocate = allocate
@@ -371,6 +379,30 @@ cdef class PFactorGeneralTreeCounts(PFactor):
         
     def initialize(self, vector[int] parents, vector[int] num_states):
         (<FactorGeneralTreeCounts*>self.thisptr).Initialize(parents, num_states)
+
+
+cdef class PFactorTree(PFactor):
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+           self.thisptr = new FactorTree()
+
+    def __dealloc__(self):
+        if self.allocate:
+            del self.thisptr
+
+    def initialize(self, int length, list arcs):
+        cdef vector[Arc *] arcs_v
+        cdef int head, modifier
+
+        for arc in arcs:
+            head, modifier = arc
+            arcs_v.push_back(new Arc(head, modifier))
+
+        (<FactorTree*>self.thisptr).Initialize(length, arcs_v)
+
+        for arcp in arcs_v:
+            del arcp
 
 
 cdef class PFactorGraph:

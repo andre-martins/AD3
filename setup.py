@@ -6,10 +6,12 @@ libad3 = ('ad3', {
     'sources': ['ad3/FactorGraph.cpp',
                 'ad3/GenericFactor.cpp',
                 'ad3/Factor.cpp',
-                'ad3/Utils.cpp'],
+                'ad3/Utils.cpp',
+                'examples/parsing/FactorTree.cpp'],
     'include_dirs': ['.',
                      './ad3',
-                     './Eigen'
+                     './Eigen',
+                     './examples/parsing'
                      ],
     'extra_compile_args': [
         '-Wno-sign-compare',
