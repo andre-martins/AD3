@@ -2,20 +2,25 @@ branches:
   only:
     - master
 
-language: python
 notifications:
   email: false
-os:
-  - linux
-  - osx
-python:
-  - "2.7"
-  - "3.5"
-before_install :
-  - sudo apt-get install -qq libboost-dev
+
+matrix:
+    include:
+        - os: linux
+          sudo: false
+          python: 2.7
+        - os: linux
+          sudo: false
+          python: 3.5
+        - os: osx
+          language: generic
+        - os: osx
+          language: generic
+
 install:
   - python setup.py bdist_wheel
   - pip install --pre --no-index --find-links dist/ ad3
 
 script:
-  - nosetests -vs python/tests
+  - mkdir empty_folder; cd empty_folder; nosetests -vs ad3
