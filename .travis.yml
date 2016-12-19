@@ -14,4 +14,5 @@ install:
   - python setup.py bdist_wheel
   - pip install --pre --no-index --find-links dist/ ad3
 
-script: true
+script:
+  - nosetests -s --with-timer --timer-top-n 20 python/tests
