@@ -15,4 +15,4 @@ install:
   - pip install --pre --no-index --find-links dist/ ad3
 
 script:
-  - nosetests -s --with-timer --timer-top-n 20 python/tests
+  - nosetests -vs python/tests
