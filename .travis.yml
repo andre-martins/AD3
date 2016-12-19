@@ -5,6 +5,8 @@ branches:
 notifications:
   email: false
 
+language: python
+
 matrix:
     include:
         - os: linux
@@ -13,8 +15,6 @@ matrix:
         - os: linux
           sudo: false
           python: 3.5
-        - os: osx
-          language: generic
         - os: osx
           language: generic
 
