@@ -1,5 +1,5 @@
 # Author: Vlad Niculae <vlad@vene.ro>
-# License: Simplified BSD
+# License: GNU LGPL v3
 
 import numpy as np
 from numpy.testing import assert_array_equal
