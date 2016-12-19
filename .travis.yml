@@ -19,6 +19,7 @@ matrix:
           language: generic
 
 install:
+  - pip install nosetests
   - python setup.py bdist_wheel
   - pip install --pre --no-index --find-links dist/ ad3
 
