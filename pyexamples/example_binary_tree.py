@@ -148,7 +148,7 @@ for i in range(num_nodes):
     best_states.append(j)
     t += 2
 
-print(best_states)
+print("Solution using DENSE and BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a BINARY_TREE factor.
 factor_graph = fg.PFactorGraph()
@@ -220,4 +220,4 @@ for i in range(num_nodes):
         j = 0
     best_states.append(j)
     t += 1
-print(best_states)
+print("Solution using BINARY_TREE_COUNTS factor:", best_states)

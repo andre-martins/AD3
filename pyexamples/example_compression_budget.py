@@ -96,7 +96,7 @@ for i in range(length):
     best_states.append(j)
     t += num_states[i]
 
-print("Solution using SEQUENCE + BUDGET:", best_states)
+print("Solution using SEQUENCE + BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a COMPRESSION_BUDGET factor.
 compression_factor_graph = fg.PFactorGraph()
@@ -163,4 +163,4 @@ for i in range(length):
         j = 0
     best_states.append(j)
 
-print("Solution using COMPRESSION_BUDGET:", best_states)
+print("Solution using COMPRESSION_BUDGET factor:", best_states)

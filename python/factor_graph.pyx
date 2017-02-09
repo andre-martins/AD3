@@ -563,7 +563,7 @@ cdef class PFactorGraph:
         for i in range(additional_posteriors.size()):
             p_additional_posteriors.append(additional_posteriors[i])
 
-        return value, p_posteriors, p_additional_posteriors
+        return value, p_posteriors, p_additional_posteriors, solver_status
         
     def get_dual_variables(self):
         cdef vector[double] dual_variables = self.thisptr.GetDualVariables()

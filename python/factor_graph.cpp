@@ -8505,7 +8505,7 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_38solve_exact_ma
   std::vector<double>  __pyx_v_posteriors;
   std::vector<double>  __pyx_v_additional_posteriors;
   double __pyx_v_value;
-  CYTHON_UNUSED int __pyx_v_solver_status;
+  int __pyx_v_solver_status;
   PyObject *__pyx_v_p_posteriors = NULL;
   PyObject *__pyx_v_p_additional_posteriors = NULL;
   size_t __pyx_v_i;
@@ -8516,6 +8516,7 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_38solve_exact_ma
   size_t __pyx_t_3;
   size_t __pyx_t_4;
   int __pyx_t_5;
+  PyObject *__pyx_t_6 = NULL;
   __Pyx_RefNannySetupContext("solve_exact_map_ad3", 0);
 
   /* "python/factor_graph.pyx":556
@@ -8583,7 +8584,7 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_38solve_exact_ma
  *         for i in range(additional_posteriors.size()):
  *             p_additional_posteriors.append(additional_posteriors[i])             # <<<<<<<<<<<<<<
  * 
- *         return value, p_posteriors, p_additional_posteriors
+ *         return value, p_posteriors, p_additional_posteriors, solver_status
  */
     __pyx_t_2 = PyFloat_FromDouble((__pyx_v_additional_posteriors[__pyx_v_i])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 564, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
@@ -8594,26 +8595,31 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_38solve_exact_ma
   /* "python/factor_graph.pyx":566
  *             p_additional_posteriors.append(additional_posteriors[i])
  * 
- *         return value, p_posteriors, p_additional_posteriors             # <<<<<<<<<<<<<<
+ *         return value, p_posteriors, p_additional_posteriors, solver_status             # <<<<<<<<<<<<<<
  * 
  *     def get_dual_variables(self):
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_2 = PyFloat_FromDouble(__pyx_v_value); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 566, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 566, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_solver_status); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 566, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_6 = PyTuple_New(4); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 566, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_6);
   __Pyx_GIVEREF(__pyx_t_2);
-  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_2);
+  PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_2);
   __Pyx_INCREF(__pyx_v_p_posteriors);
   __Pyx_GIVEREF(__pyx_v_p_posteriors);
-  PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_p_posteriors);
+  PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_v_p_posteriors);
   __Pyx_INCREF(__pyx_v_p_additional_posteriors);
   __Pyx_GIVEREF(__pyx_v_p_additional_posteriors);
-  PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_v_p_additional_posteriors);
+  PyTuple_SET_ITEM(__pyx_t_6, 2, __pyx_v_p_additional_posteriors);
+  __Pyx_GIVEREF(__pyx_t_1);
+  PyTuple_SET_ITEM(__pyx_t_6, 3, __pyx_t_1);
   __pyx_t_2 = 0;
-  __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
+  __pyx_r = __pyx_t_6;
+  __pyx_t_6 = 0;
   goto __pyx_L0;
 
   /* "python/factor_graph.pyx":551
@@ -8628,6 +8634,7 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_38solve_exact_ma
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_6);
   __Pyx_AddTraceback("python.factor_graph.PFactorGraph.solve_exact_map_ad3", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
@@ -8639,7 +8646,7 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_38solve_exact_ma
 }
 
 /* "python/factor_graph.pyx":568
- *         return value, p_posteriors, p_additional_posteriors
+ *         return value, p_posteriors, p_additional_posteriors, solver_status
  * 
  *     def get_dual_variables(self):             # <<<<<<<<<<<<<<
  *         cdef vector[double] dual_variables = self.thisptr.GetDualVariables()
@@ -8729,7 +8736,7 @@ static PyObject *__pyx_pf_6python_12factor_graph_12PFactorGraph_40get_dual_varia
   goto __pyx_L0;
 
   /* "python/factor_graph.pyx":568
- *         return value, p_posteriors, p_additional_posteriors
+ *         return value, p_posteriors, p_additional_posteriors, solver_status
  * 
  *     def get_dual_variables(self):             # <<<<<<<<<<<<<<
  *         cdef vector[double] dual_variables = self.thisptr.GetDualVariables()

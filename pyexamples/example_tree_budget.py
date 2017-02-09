@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 import ad3.factor_graph as fg
