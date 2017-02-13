@@ -20,3 +20,7 @@
 
 2017-02-07 AD3 2.1.0 jean-luc.meunier@xrce.xerox.com
   Added support for node types and hard logic constraints in Python API
+
+2017-02-13 AD3 2.1.1 jean-luc.meunier@xrce.xerox.com
+  Reduced memory footprint in multitype method  
+ 

@@ -36,7 +36,7 @@ libad3 = ('ad3', {
 
 
 setup(name='ad3',
-      version="2.1.0",
+      version="2.1.1",
       author="Andre Martins, Jean-Luc Meunier",
       description='Alternating Directions Dual Decomposition',
       url="http://www.ark.cs.cmu.edu/AD3",
