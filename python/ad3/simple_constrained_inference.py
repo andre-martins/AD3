@@ -27,7 +27,7 @@
 import numpy as np
 import factor_graph as fg
 
-def general_constrained_graph(unaries, edges, edge_weights, constraints, verbose=1, n_iterations=1000, eta=0.1, exact=False, nodetype=None):
+def general_constrained_graph(unaries, edges, edge_weights, constraints, verbose=1, n_iterations=1000, eta=0.1, exact=False):
     """
     inference on a graph, taking into account logical constraints between unaries.
     
@@ -37,9 +37,9 @@ def general_constrained_graph(unaries, edges, edge_weights, constraints, verbose
     
     JL Meunier - January 2017
     """
-    if nodetype:
+    if isinstance(unaries, list):
         #this must be a graph with multiple node types
-        return general_constrained_graph_multitype(unaries, edges, edge_weights, constraints, verbose, n_iterations, eta, exact, nodetype)
+        return general_constrained_graph_multitype(unaries, edges, edge_weights, constraints, verbose, n_iterations, eta, exact)
     else:
         return general_constrained_graph_singletype(unaries, edges, edge_weights, constraints, verbose, n_iterations, eta, exact)
 
@@ -81,8 +81,6 @@ def general_constrained_graph_singletype(unaries, edges, edge_weights, constrain
     n_states = unaries.shape[-1]
 
 
-    dUik_name = {}
-    
     binary_variables = []   
     """
     define one binary variable Uik per possible state k of the node i.
@@ -91,14 +89,11 @@ def general_constrained_graph_singletype(unaries, edges, edge_weights, constrain
     """
     for u in unaries:
         lUi = []
-        for state, cost in enumerate(u):
+        for _, cost in enumerate(u):
             Uik = factor_graph.create_binary_variable()
             Uik.set_log_potential(cost)
             lUi.append(Uik)
             
-            name = "var_%d_state_%d_cost_%.3f"%(len(dUik_name), state, cost)
-            print name
-            dUik_name[Uik] = name
         #link these variable by a XOR factor
         factor_graph.create_factor_logic("XOR", lUi, [False]*len(lUi)) #False because they are not negated
         binary_variables.extend(lUi)
@@ -136,14 +131,9 @@ def general_constrained_graph_singletype(unaries, edges, edge_weights, constrain
                 cost = edge_weights_ei[k,l]
                 Uijkl.set_log_potential(cost)
                 
-                name = "edge_%d_%d->%d_cost=%.3f" %(len(dUik_name),k,l, cost)
-                print name
-                dUik_name[Uijkl] = name
-                
             #Let's do a)
             lUijkl_for_all_l = lUijk
             factor_graph.create_factor_logic("XOR", [Uik]+lUijkl_for_all_l, [True]+[False]*len(lUijkl_for_all_l)) 
-            print "XOR not_", dUik_name[Uik], [dUik_name[o] for o in lUijkl_for_all_l]
             lUij.extend(lUijk)
             
         #now do b)
@@ -151,7 +141,6 @@ def general_constrained_graph_singletype(unaries, edges, edge_weights, constrain
             Ujl = binary_variables[ j*n_states+l ]
             Uijkl_for_all_k = [ lUij[ k*n_states + l ] for k in range(n_states)]
             factor_graph.create_factor_logic("XOR", [Ujl]+Uijkl_for_all_k, [True]+[False]*len(Uijkl_for_all_k)) 
-            print "XOR not_", dUik_name[Ujl], [dUik_name[o] for o in Uijkl_for_all_k]
         
         del lUij
 
@@ -185,7 +174,7 @@ def general_constrained_graph_singletype(unaries, edges, edge_weights, constrain
 
 #---------  MULTY-TYPE -----------------------------------------------------------------------------------------------------------------
 
-def general_constrained_graph_multitype(unaries, edges, edge_weights, constraints, verbose=1, n_iterations=1000, eta=0.1, exact=False, nodetype=None):
+def general_constrained_graph_multitype(l_unaries, l_edges, l_edge_weights, constraints, verbose=1, n_iterations=1000, eta=0.1, exact=False):
     """
     inference on a graph with multiple node types, taking into account logical constraints between unaries.
     
@@ -210,37 +199,20 @@ def general_constrained_graph_multitype(unaries, edges, edge_weights, constraint
     
     JL Meunier - January 2017
     """
-    assert nodetype, "Internal error"
+    l_n_nodes, l_n_states = zip(*[unary.shape for unary in l_unaries])  #number of nodes and of states per type
+#     n_types = len(l_unaries)                       #number of node types
+#     n_nodes = sum(l_n_nodes)                        #number of nodes
+#     n_states = sum(l_n_states)                      #total number of states across types
+#     n_edges = sum( edges.shape[0] for edges in l_edges)
     
-    l_n_nodes, l_n_states = nodetype                #number of nodes per node type, number of states per node type
-    n_nodes = sum(l_n_nodes)                        #number of nodes
-    n_types = len(l_n_states)                       #number of node types
-    n_states = sum(l_n_states)                      #total number of states across types
+    #BASIC CHECKING
+    assert len(l_unaries)**2 == len(l_edges)
+    assert len(l_edges) == len(l_edge_weights)
     
-    #CHECKING
-    assert unaries.shape == (n_nodes, n_states)
-    assert len(edges) == len(edge_weights)
-    assert edge_weights.shape == (len(edges), n_states, n_states)
-    
-    #internal stuff
-    #when putting weights in a single sequence, index of 1st weight for type i
-    l_state_startindex_by_type = [ sum(l_n_states[:i]) for i in range(n_types+1)]   #CAUTION, we go beyond the last type
-    l_node_startindex_by_type  = [ sum(l_n_nodes [:i]) for i in range(n_types+1)]   #CAUTION, we go beyond the last type
-
     #when  making binary variable, index of 1st variable given a type
     a_binaryvariable_startindex_by_type = np.cumsum([0]+[_n_states * _n_nodes for _n_states, _n_nodes in zip(l_n_states, l_n_nodes)]) 
     
-    #an index giving the index of Ui for 1st state of node i in the list of unary_binary_variables
-    a_Ui_index_by_i = np.zeros( (n_nodes,), np.uint32)
-    
     factor_graph = fg.PFactorGraph()
-
-    #make a table giving the node type
-    a_binary_variable_type = np.empty((n_nodes, ), dtype=np.uint32)
-    for i in range(n_types):
-        a_binary_variable_type[ l_node_startindex_by_type[i]:l_node_startindex_by_type[i+1] ] = i
-
-#     dUik_name = {}
 
     #table giving the index of first Uik for i
     #variables indicating the graph node states        
@@ -248,21 +220,11 @@ def general_constrained_graph_multitype(unaries, edges, edge_weights, constraint
     """
     define one binary variable Uik per possible state k of the node i of type T
     Uik = unary_binary_variables[ a_binaryvariable_startindex_by_type[T] + i_in_typ*typ_n_states + k ]
-    faster access:
-        Uik = unary_binary_variables[ a_Ui_index_by_i[ global_node_index ] + k ]
 
     the Ith unaries is represented by [Uik for k in range(n_states)]
     """
-    i_node_type_start = 0
-    for typ, (_n_nodes, _n_states) in enumerate(zip(l_n_nodes, l_n_states)):
-        
-        i_state_type_start = l_state_startindex_by_type[typ]
-        
-        #NOTE: unaries.shape == (n_nodes, n_states)
-        type_unaries = unaries[ i_node_type_start:i_node_type_start+_n_nodes, i_state_type_start:i_state_type_start+_n_states ]
-        
-        assert len(unary_binary_variables) == a_binaryvariable_startindex_by_type[typ]
-        
+    for _n_nodes, _n_states, type_unaries in zip(l_n_nodes, l_n_states, l_unaries):
+        assert type_unaries.shape == (_n_nodes, _n_states)
         for i in xrange(_n_nodes):
             lUi = list() #All binary nodes for that node of that type
             
@@ -271,18 +233,11 @@ def general_constrained_graph_multitype(unaries, edges, edge_weights, constraint
                 Uik.set_log_potential( type_unaries[i,state] )
                 lUi.append(Uik)
 
-#                 name = "var_%d_state_%d_cost_%.3f"%(len(dUik_name), state, type_unaries[i,state])
-#                 print name
-#                 dUik_name[Uik] = name                
-                
             #link these variable by a XOR factor
             factor_graph.create_factor_logic("XOR", lUi, [False]*len(lUi)) #False because they are not negated
             
-            a_Ui_index_by_i[i_node_type_start+i] = len(unary_binary_variables)
-            
             unary_binary_variables.extend(lUi)
-        i_node_type_start += _n_nodes
-        
+
     """
     create the logical constraints
     """
@@ -297,11 +252,11 @@ def general_constrained_graph_multitype(unaries, edges, edge_weights, constraint
             lVar = list()      #listing the implied unaries
             lNegated = list()  #we will flatten it from the per type information
             for typ, (_l_unary_i, _l_state, _l_negated) in enumerate(zip(l_l_unary_i, l_l_state, l_l_negated)):
+                if not _l_unary_i: continue
                 if not isinstance(_l_state  , list): _l_state   = [_l_state]   * len(_l_unary_i) 
                 if not isinstance(_l_negated, list): _l_negated = [_l_negated] * len(_l_unary_i) 
                 if len(_l_unary_i) != len(_l_state)  : raise ValueError("Type %d: Number of states differs from unary index number."%typ)
                 if len(_l_unary_i) != len(_l_negated): raise ValueError("type %d: Number of negated differs from unary index number."%typ)
-                if not _l_unary_i: continue
                 typ_n_states = l_n_states[typ]
                 if max(_l_state) >= typ_n_states    : raise ValueError("Type %d: State should in [%d, %d]"%(typ, 0, typ_n_states-1))
                 start_type_index = a_binaryvariable_startindex_by_type[typ]
@@ -325,47 +280,48 @@ def general_constrained_graph_multitype(unaries, edges, edge_weights, constraint
     a) Link variable [Uijkl for all l] and not(Uik) for all k
     b) Link variable [Uijkl for all k] and not(Ujl) for all l
     """
-    for ei, e in enumerate(edges):
-        i,j = e
-        typ_i, typ_j = a_binary_variable_type[i], a_binary_variable_type[j]
-        start_typ_i, start_typ_j = l_state_startindex_by_type[typ_i], l_state_startindex_by_type[typ_j]
-        n_states_i, n_states_j = l_n_states[typ_i], l_n_states[typ_j]
-        #NOTE: edge_weights.shape == (len(edges), n_states, n_states)
-        edge_weights_ei = edge_weights[ei]
-        
-        lUij = [] # list all binary nodes reflecting the edge between node i and node j, for all possible pairs of states
-        lUijl_by_l = [list() for _ in xrange(n_states_j)]  # Uij for all l
-        #Uijkl = lUij[ k*n_states + l ]
-        for k in range(n_states_i):
-            Uik = unary_binary_variables[ a_Ui_index_by_i[i] + k ]
-            lUijk = []
-            for l in range(n_states_j):
-                Uijkl = factor_graph.create_binary_variable()
-                lUijk.append(Uijkl)
-                lUijl_by_l[l].append(Uijkl)     #lUijl_by_l[l] is Uijkl for all k
-                cost = edge_weights_ei[start_typ_i+k, start_typ_j+l]
-                Uijkl.set_log_potential(cost)
-
-#                 name = "edge_%d_%d->%d_cost=%.3f" %(len(dUik_name),k,l, cost)
-#                 print name
-#                 dUik_name[Uijkl] = name            
-
-            #Let's do a)        lUijk is "Uijkl for all l"
-            factor_graph.create_factor_logic("XOR", [Uik]+lUijk, [True]+[False]*len(lUijk)) 
-            lUij.extend(lUijk)
-#             print "XOR not_", dUik_name[Uik], [dUik_name[o] for o in lUijk]
+    i_typ_typ = 0
+    for typ_i, n_states_i in enumerate(l_n_states):
+        for typ_j, n_states_j in enumerate(l_n_states):
+            edges        = l_edges       [i_typ_typ] #pop would modify the list..
+            edge_weights = l_edge_weights[i_typ_typ] #pop would modify the list..
+            i_typ_typ += 1
             
-        
-        #now do b)
-        for l in range(n_states_j):
-            #Ujl = unary_binary_variables[ a_binaryvariable_startindex_by_type[typ_j] + j*n_states_j + l ]
-            Ujl = unary_binary_variables[ a_Ui_index_by_i[j] + l ]
-            Uijkl_for_all_k = [ lUij[ k*n_states_j + l ] for k in range(n_states_i) ]
-            factor_graph.create_factor_logic("XOR", [Ujl]+Uijkl_for_all_k, [True]+[False]*len(Uijkl_for_all_k)) 
-#             print "XOR not_", dUik_name[Ujl], [dUik_name[o] for o in Uijkl_for_all_k]
-        
-        del lUij, lUijl_by_l 
+            if len(edges) or len(edge_weights): assert edge_weights.shape[1:] == (n_states_i, n_states_j)
+            for e, cost in zip(edges, edge_weights):
+                i,j = e
 
+                #NOTE: Uik = unary_binary_variables[ a_binaryvariable_startindex_by_type[T] + i_in_typ*typ_n_states + k ]
+                index_Ui_base = a_binaryvariable_startindex_by_type[typ_i] + i*n_states_i
+                index_Uj_base = a_binaryvariable_startindex_by_type[typ_j] + j*n_states_j
+                
+                lUij = [] # list all binary nodes reflecting the edge between node i and node j, for all possible pairs of states
+                lUijl_by_l = [list() for _ in xrange(n_states_j)]  # Uij for all l
+                for k in range(n_states_i):
+                    cost_k = cost[k]
+                    Uik = unary_binary_variables[ index_Ui_base + k ]
+                    lUijk = []
+                    for l in range(n_states_j):
+                        Uijkl = factor_graph.create_binary_variable()
+                        lUijk.append(Uijkl)
+                        lUijl_by_l[l].append(Uijkl)     #lUijl_by_l[l] is Uijkl for all k
+                        Uijkl.set_log_potential(cost_k[l])
+        
+                    #Let's do a)        lUijk is "Uijkl for all l"
+                    factor_graph.create_factor_logic("XOR", [Uik]+lUijk, [True]+[False]*len(lUijk)) 
+                    lUij.extend(lUijk)
+        #             print "XOR not_", dUik_name[Uik], [dUik_name[o] for o in lUijk]
+                    
+                
+                #now do b)
+                for l in range(n_states_j):
+                    Ujl = unary_binary_variables[ index_Uj_base + l ]
+                    Uijkl_for_all_k = [ lUij[ k*n_states_j + l ] for k in range(n_states_i) ]
+                    factor_graph.create_factor_logic("XOR", [Ujl]+Uijkl_for_all_k, [True]+[False]*len(Uijkl_for_all_k)) 
+        #             print "XOR not_", dUik_name[Ujl], [dUik_name[o] for o in Uijkl_for_all_k]
+                
+                del lUij, lUijl_by_l             
+            
     factor_graph.set_eta_ad3(eta)
     factor_graph.adapt_eta_ad3(True)
     factor_graph.set_max_iterations_ad3(n_iterations)
@@ -373,93 +329,49 @@ def general_constrained_graph_multitype(unaries, edges, edge_weights, constraint
     #factor_graph.fix_multi_variables_without_factors()  # NEEDED ???
     
     if exact:
-        #NOT SUPPORTED - NO IDEA WHAT IT MEANS AND HOW DO DEAL WITH THIS
-        assert False
-        value, marginals, edge_marginals, solver_status =\
+        #NOT SUPPORTED - NO IDEA HOW DO DEAL WITH THIS
+        value, marginals, _, solver_status =\
             factor_graph.solve_exact_map_ad3()
     else:
-        value, marginals, edge_marginals, solver_status =\
+        value, marginals, _, solver_status =\
             factor_graph.solve_lp_map_ad3()
-#     print " exact=", exact, "   edge_marginals =", edge_marginals
-#     print "SOLVER MULTITYPE OUPUT ", "value=",value, "solver_status=",solver_status
-    
-#     print "SOLVER OUTPUT ", show((value, marginals, edge_marginals, solver_status))
-    
+        
     #put back the values of the binary variables into the marginals
-    ret_marginals = np.zeros(unaries.shape, dtype=unaries.dtype)    #this will be the returned node marginals
     aux_marginals = np.asarray(marginals)
-    
-    #first the node marginals
-    #NOTE: unaries.shape == (n_nodes, n_states)
-    i,j,k = 0,0,0
+
+    #THE NODE MARGINALS
+    ret_node_marginals = list()
+    k = 0
     for (_n_nodes, _n_states) in zip(l_n_nodes, l_n_states):  #iteration by type
         _n_binaries = _n_nodes * _n_states
-        ret_marginals[ i:i+_n_nodes , j:j+_n_states ] = aux_marginals[ k:k+_n_binaries ].reshape(_n_nodes, _n_states)
-        i += _n_nodes
-        j += _n_states
+        ret_node_marginals.append( aux_marginals[ k:k+_n_binaries ].reshape(_n_nodes, _n_states) )
         k += _n_binaries
-
-    aux_marginals = marginals[len(unary_binary_variables):]
+    #assert k == len(unary_binary_variables)
     
-    ret_edge_marginals = np.zeros((edge_weights.shape[0], n_states**2), dtype=unaries.dtype)   #returned edge marginals
+    #NOW THE EDGE MARGINALS
+    aux_marginals = aux_marginals[len(unary_binary_variables):]
 
-    if False:
-        #when putting edge states in a single sequence, index of 1st state of an edge of type (typ1, typ2)
-        l_edgetype_start_index = [] 
-        i_start = 0
-        for typ1_n_states in l_n_states:
-            for typ2_n_states in l_n_states:
-                l_edgetype_start_index.append(i_start)
-                i_start += typ1_n_states*typ2_n_states 
-        l_edgetype_start_index.append(i_start)
-        assert i_start == n_states**2
-          
-      
-        for ei, e in enumerate(edges):  #iteration over edges, as when creating the bianry variables reflecting each edge
-            i,j = e
-            typ_i, typ_j = a_binary_variable_type[i], a_binary_variable_type[j]
-            n_states_i, n_states_j = l_n_states[typ_i], l_n_states[typ_j]
-            i_start = l_edgetype_start_index[typ_i*n_states+typ_j]
-             
-            ret_edge_marginals_ei = ret_edge_marginals[ei]
-            for k in range(n_states_i):
-                for l in range(n_states_j):
-                    ret_edge_marginals_ei[i_start+k*n_states_j+l] = aux_marginals.pop(0)
-    else:
-        #when putting edge states in a single sequence, index of 1st state of an edge of type (typ1, typ2)
-        a_startindex_by_typ_typ = np.zeros((n_types, n_types), dtype=np.int32)
-        i_state_start = 0
-        for typ1, typ1_n_states in enumerate(l_n_states):
-            for typ2, typ2_n_states in enumerate(l_n_states):
-                a_startindex_by_typ_typ[typ1,typ2] = i_state_start
-                i_state_start += typ1_n_states*typ2_n_states 
-                    
-        i_start = 0
-        for ei, e in enumerate(edges):  #iteration over edges, as when creating the bianry variables reflecting each edge
-            i,j = e
-            typ_i, typ_j = a_binary_variable_type[i], a_binary_variable_type[j]
-            n = l_n_states[typ_i] * l_n_states[typ_j]
-            i_stop = i_start + n
-            i_state_start = a_startindex_by_typ_typ[typ_i,typ_j]
-            ret_edge_marginals[ei, i_state_start:i_state_start+n] = aux_marginals[i_start:i_stop]
-            i_start = i_stop
-     
-    #assert_array_almost_equal(np.sum(marginals, axis=-1), 1)
-    #edge_marginals  is []  edge_marginals = np.array(edge_marginals).reshape(-1, n_states ** 2)
+    ret_edge_marginals = list()
+
+    i_typ_typ = 0
+    i_marg_start = 0
+    for typ_i, n_states_i in enumerate(l_n_states):
+        for typ_j, n_states_j in enumerate(l_n_states):
+            edges = l_edges[i_typ_typ] #pop would modify the list..
+            i_typ_typ += 1
+            
+            _n_edges = len(edges)
+            _n_edge_states = n_states_i * n_states_j
+            _n_marg = _n_edges * _n_edge_states
+            
+            if _n_edges:
+                ret_edge_marginals.append( aux_marginals[ i_marg_start : i_marg_start + _n_marg ].reshape((_n_edges, _n_edge_states)) )
+            else:
+                ret_edge_marginals.append( np.zeros( (0, _n_edge_states) ) )
+            i_marg_start  += _n_marg
+    #assert i_marg_start == len(aux_marginals)
+    
     solver_string = ["integral", "fractional", "infeasible", "unsolved"]
 
-    return ret_marginals, ret_edge_marginals, value, solver_string[solver_status]
+    return ret_node_marginals, ret_edge_marginals, value, solver_string[solver_status]
 
-# def getY_from_typedmarginals(unary_marginals, nodetypedata):
-#     """
-#     we use argmax, but need to use the class index by type of node, not the global one
-#     """
-#     l_n_nodes, l_n_states = nodetypedata                #number of nodes per node type, number of states per node type
-# 
-#     Y_pred = np.argmax(unary_marginals, axis=-1)
-#     cum_n_states,k = 0,0
-#     for (n_nodes, n_states) in zip(l_n_nodes, l_n_states):
-#         Y_pred[ k:k+n_nodes ] -= cum_n_states
-#         cum_n_states += n_states
-#         k += n_nodes
-#     return Y_pred
