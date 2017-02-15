@@ -4,8 +4,8 @@
 This project is a fork from André Martins's project [AD3](https://github.com/andre-martins/AD3).
 
 We extend here the __Python API to AD3__ to support:
-- passing hard-logic constraints in inference methods
-- making inference on graph where nodes have different natures
+- supporting hard-logic constraints in inference methods
+- supporting inference on graph where nodes have different natures
 
 We did those extensions in order to extend the pystruct structured learning library. See [Pystruct+](https://github.com/jlmeunier/pystruct)
 
@@ -14,22 +14,24 @@ We did those extensions in order to extend the pystruct structured learning libr
 
 ## Hard Logic Constraints
 As explained in André's ICML paper [1], one can **binarize the graph** and make inference on boolean values.
-Exploiting this method, we tolerate a constraints parameter in the infernce methods.
+Exploiting this method, we support logical constraints when doing inference.
 
 [1] André F. T. Martins, Mário A. T. Figueiredo, Pedro M. Q. Aguiar, Noah A. Smith, and Eric P. Xing.
 "An Augmented Lagrangian Approach to Constrained MAP Inference."
 International Conference on Machine Learning (ICML'11), Bellevue, Washington, USA, June 2011.
 
 ## Nodes of Different Nature
-When node are of different nature, their number of states may differ. Provided the definition of the number of states per **type of node** , the inference method deals gracefully with this situation.
+When the nodes of the graph are of different nature, their number of possible states may differ from each other. Provided the definition of the number of states per **type of node** , the inference method deals gracefully with this situation.
 
-## Hard logic and Node of Multiple Nature
+## Hard Logic and Node of Multiple Nature
 Yes, the combination of both is possible and works fine! :-)
 
 
 You can contact the author on [github](https://github.com/jlmeunier/AD3). Comments and contributions are welcome.
 
-## Acknowledgment
+## EU Grant
+Copyright Xerox(C) 2017 JL. Meunier
+
 Developed for the EU project READ. The READ project has received funding 
 from the European Union's Horizon 2020 research and innovation programme 
 under grant agreement No 674943.
