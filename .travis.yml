@@ -1,6 +1,6 @@
 branches:
   only:
-    - master
+    - newrel 
 
 notifications:
   email: false
@@ -14,14 +14,14 @@ matrix:
           python: 2.7
         - os: linux
           sudo: false
-          python: 3.5
+          python: 3.6
         - os: osx
           language: generic
 
 install:
-  - pip install nose
+  - pip install pytest
   - python setup.py bdist_wheel
   - pip install --pre --no-index --find-links dist/ ad3
 
 script:
-  - mkdir empty_folder; cd empty_folder; nosetests -vs ad3
+  - mkdir empty_folder; cd empty_folder; pytest -vs ad3
