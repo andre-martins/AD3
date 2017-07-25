@@ -7,11 +7,11 @@ libad3 = ('ad3', {
                 'ad3/GenericFactor.cpp',
                 'ad3/Factor.cpp',
                 'ad3/Utils.cpp',
-                'examples/parsing/FactorTree.cpp'],
+                'examples/cpp/parsing/FactorTree.cpp'],
     'include_dirs': ['.',
                      './ad3',
                      './Eigen',
-                     './examples/parsing'
+                     './examples/cpp/parsing'
                      ],
     'extra_compile_args': [
         '-Wno-sign-compare',
