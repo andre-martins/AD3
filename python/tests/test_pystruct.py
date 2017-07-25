@@ -1,20 +1,21 @@
 """Test pystruct integration"""
 # Author: Vlad Niculae <vlad@vene.ro>
 
+missing_pystruct = True
 try:
     import pystruct
-    has_pystruct = True
+    missing_pystruct = False
 except ImportError:
-    has_pystruct = False
+    pass
 
+import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_almost_equal
-from nose import SkipTest
 
 
+@pytest.mark.skipif(missing_pystruct,
+                    reason="pystruct is not available")
 def test_pystruct():
-    if not has_pystruct:
-        raise SkipTest("pystruct not available")
 
     from pystruct.inference import inference_ad3
 
