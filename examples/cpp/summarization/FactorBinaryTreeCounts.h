@@ -20,7 +20,7 @@
 #define FACTOR_BINARY_TREE_COUNTS
 
 #include "ad3/GenericFactor.h"
-#include "examples/summarization/FactorGeneralTreeCounts.h"
+#include "examples/cpp/summarization/FactorGeneralTreeCounts.h"
 #include <limits>
 
 namespace AD3 {
@@ -45,7 +45,7 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
     return additional_log_potentials[index];
   }
 
-  double GetCountScore(int position, 
+  double GetCountScore(int position,
                        int count,
                        const vector<double> &variable_log_potentials,
                        const vector<double> &additional_log_potentials) {
@@ -193,7 +193,7 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
                             additional_log_potentials);
   }
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   void UpdateMarginalsFromConfiguration(
     const Configuration &configuration,
@@ -298,7 +298,7 @@ class FactorBinaryTreeCounts : public FactorGeneralTreeCounts {
     }
 
     index_edges_.resize(length);
- 
+
     int index = 0;
     // Root does not have incoming edges.
     for (int i = 1; i < length; ++i) {
