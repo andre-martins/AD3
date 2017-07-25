@@ -19,9 +19,9 @@ matrix:
           language: generic
 
 install:
-  - pip install pytest
+  - pip install pytest numpy
   - python setup.py bdist_wheel
   - pip install --pre --no-index --find-links dist/ ad3
 
 script:
-  - mkdir empty_folder; cd empty_folder; pytest -vs ad3
+  - mkdir empty_folder; cd empty_folder; pytest -vs --pyargs ad3

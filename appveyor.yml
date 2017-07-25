@@ -68,7 +68,7 @@ test_script:
   - "mkdir empty_folder"
   - "cd empty_folder"
 
-  - "pytest -vs ad3"
+  - "pytest -vs --pyargs ad3"
 
   # Move back to the project folder
   - "cd .."
