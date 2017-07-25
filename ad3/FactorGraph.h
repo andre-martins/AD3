@@ -33,7 +33,7 @@ enum OptimizationStatus {
 class FactorGraph {
  public:
   FactorGraph() {
-    verbosity_ = 2;
+    verbosity_ = 0;
     num_links_ = 0;
     ResetParametersAD3();
     ResetParametersPSDD();
@@ -85,7 +85,7 @@ class FactorGraph {
     return multi;
   }
 
-  // Declare a factor. 
+  // Declare a factor.
   // By default, the factor is NOT owned by the factor graph.
   void DeclareFactor(Factor *factor, const vector<BinaryVariable*> &variables,
                      bool owned_by_graph = false) {
@@ -120,7 +120,7 @@ class FactorGraph {
     return factor;
   }
 
-  // Create a new XOR-with-output factor. 
+  // Create a new XOR-with-output factor.
   // This is a XOR whose last variable is negated.
   Factor *CreateFactorXOROUT(const vector<BinaryVariable*> &variables,
                              bool owned_by_graph = true) {
@@ -186,7 +186,7 @@ class FactorGraph {
     return factor;
   }
 
-  // Create a new AND-with-output factor. 
+  // Create a new AND-with-output factor.
   // This is a OROUT whose all variables negated.
   Factor *CreateFactorANDOUT(const vector<BinaryVariable*> &variables,
                              bool owned_by_graph = true) {
@@ -209,7 +209,7 @@ class FactorGraph {
     return factor;
   }
 
-  // Create a new IMPLY factor. 
+  // Create a new IMPLY factor.
   // This is a OR whose first K-1 variables are negated.
   // It imposes (A_1 ^ A_2 ^ ... ^ A_{K-1} => A_K).
   Factor *CreateFactorIMPLY(const vector<BinaryVariable*> &variables,
@@ -274,7 +274,7 @@ class FactorGraph {
     return factor;
   }
 
-  // Create a new PAIR factor. 
+  // Create a new PAIR factor.
   // All edge log-potentials are assumed to be zero, except for the
   // configuration where both inputs are 1, which receives the value
   // in edge_log_potential.
@@ -290,7 +290,7 @@ class FactorGraph {
     return factor;
   }
 
-  // Create a new dense factor. 
+  // Create a new dense factor.
   // All additional log-potentials are assumed to be in the following order:
   // scores[0,0,...,0], scores[0,0,...,1], etc.
   Factor *CreateFactorDense(const vector<MultiVariable*> &multi_variables,
@@ -323,23 +323,23 @@ class FactorGraph {
   const vector<double> &GetLocalPrimalVariables() { return maps_; }
   const vector<double> &GetGlobalPrimalVariables() { return maps_av_; }
 
-  // Check if there is any multi-variable which does not 
+  // Check if there is any multi-variable which does not
   // belong to any factor, and if so, assign a XOR factor
   // to the corresponding binary variables.
   void FixMultiVariablesWithoutFactors();
-  
+
   // Convert a factor graph with multi-valued variables to one which only
   // contains binary variables and hard constraint factors.
   void ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph);
 
   // Transform the factor graph to incorporate evidence information.
-  // The vector evidence is given {0,1,-1} values (-1 means no evidence). The 
+  // The vector evidence is given {0,1,-1} values (-1 means no evidence). The
   // size of the vector is the number of variables plus the number of additional
   // factor information, yet only the variables can have evidence values in {0,1}.
   // Evidence is then propagated (to other variables and the factors), which
   // may cause some variables and factors to be deleted or transformed.
-  // The vector recomputed_indices maps the original indices (of variables and 
-  // factor information) to the new indices in the transformed factor graph. 
+  // The vector recomputed_indices maps the original indices (of variables and
+  // factor information) to the new indices in the transformed factor graph.
   // Entries will be set to -1 if that index is no longer part of the factor
   // graph after the transformation.
   int AddEvidence(vector<int> *evidence,
@@ -358,15 +358,15 @@ class FactorGraph {
   }
 
   // Set options of AD3/PSDD algorithms.
-  void SetMaxIterationsAD3(int max_iterations) { 
+  void SetMaxIterationsAD3(int max_iterations) {
     ad3_max_iterations_ = max_iterations;
   }
   void SetEtaAD3(double eta) { ad3_eta_ = eta; }
   void AdaptEtaAD3(bool adapt) { ad3_adapt_eta_ = adapt; }
-  void SetResidualThresholdAD3(double threshold) { 
-    ad3_residual_threshold_ = threshold; 
+  void SetResidualThresholdAD3(double threshold) {
+    ad3_residual_threshold_ = threshold;
   }
-  void SetMaxIterationsPSDD(int max_iterations) { 
+  void SetMaxIterationsPSDD(int max_iterations) {
     psdd_max_iterations_ = max_iterations;
   }
   void SetEtaPSDD(double eta) { psdd_eta_ = eta; }
@@ -424,17 +424,17 @@ class FactorGraph {
                                    vector<int>* factor_indices);
 
   int RunPSDD(double lower_bound,
-              vector<double> *posteriors, 
-              vector<double> *additional_posteriors, 
+              vector<double> *posteriors,
+              vector<double> *additional_posteriors,
               double *value,
               double *upper_bound);
 
   int RunAD3(double lower_bound,
-             vector<double> *posteriors, 
-             vector<double> *additional_posteriors, 
+             vector<double> *posteriors,
+             vector<double> *additional_posteriors,
              double *value,
              double *upper_bound);
-             
+
   int RunBranchAndBound(double cumulative_value,
                         vector<bool> &branched_variables,
                         int depth,
@@ -443,7 +443,7 @@ class FactorGraph {
                         double *value,
                         double *best_lower_bound,
                         double *best_upper_bound);
-             
+
  private:
   vector<BinaryVariable*> variables_;
   vector<MultiVariable*> multi_variables_;
@@ -451,16 +451,16 @@ class FactorGraph {
   vector<bool> owned_factors_;
   int num_links_;
 
-  // Verbosity level. 0 only displays error/warning messages, 
+  // Verbosity level. 0 only displays error/warning messages,
   // 1 displays info messages, >1 displays additional info.
   int verbosity_;
 
   // Parameters for AD3:
   int ad3_max_iterations_; // Maximum number of iterations.
   double ad3_eta_; // Initial penalty parameter of the augmented Lagrangian.
-  // If true, eta_ is adjusted automatically as described in 
+  // If true, eta_ is adjusted automatically as described in
   // Boyd et al. (2011).
-  bool ad3_adapt_eta_; 
+  bool ad3_adapt_eta_;
   // Threshold for primal/dual residuals.
   double ad3_residual_threshold_;
 

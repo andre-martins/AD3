@@ -19,12 +19,12 @@
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// This file shows an example of AD3 being used in a simple model for 
+// This file shows an example of AD3 being used in a simple model for
 // co-reference resolution. There are pairwise similarities between words,
-// and there is a transitivity constraint - if words A and B are co-referent, 
+// and there is a transitivity constraint - if words A and B are co-referent,
 // and so are B and C, then A and C must also be coreferent. Finally, some
-// there is a constraint that any cluster of co-referents must have a word 
-// which is not a prononun. 
+// there is a constraint that any cluster of co-referents must have a word
+// which is not a prononun.
 // This is done by using FactorIMPLY and FactorOR.
 //
 /////////////////////////////////////////////////////////////////////////////
@@ -39,23 +39,24 @@ int main(int argc, char **argv) {
 
   cout << "Creating a coreference model with " << num_words << " words..."
        << endl;
-       
+
   vector<bool> is_pronoun(num_words, false);
   srand((unsigned)time(NULL));
   // At least two nouns.
   is_pronoun[0] = false;
   is_pronoun[1] = false;
   for (int i = 2; i < num_words; ++i) {
-    if (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) < 
-      pronoun_probability)    
+    if (static_cast<double>(rand()) / static_cast<double>(RAND_MAX) <
+      pronoun_probability)
     is_pronoun[i] = true;
   }
-  
+
   cout << "Building factor graph..."
-       << endl;       
+       << endl;
 
   // Create factor graph.
   AD3::FactorGraph factor_graph;
+  factor_graph.SetVerbosity(2);
 
   // Each candidate co-referent pair is a binary variable in the factor graph.
   vector<vector<AD3::BinaryVariable*> > binary_variables(num_words);
@@ -80,13 +81,13 @@ int main(int argc, char **argv) {
         local_variables[1] = binary_variables[j][k];
         local_variables[2] = binary_variables[i][k];
         factor_graph.CreateFactorIMPLY(local_variables);
-                
+
         // jk ^ ik => ij
         local_variables[0] = binary_variables[j][k];
         local_variables[1] = binary_variables[i][k];
         local_variables[2] = binary_variables[i][j];
         factor_graph.CreateFactorIMPLY(local_variables);
-  
+
         // ik ^ ij => jk
         local_variables[0] = binary_variables[i][k];
         local_variables[1] = binary_variables[i][j];
@@ -95,9 +96,9 @@ int main(int argc, char **argv) {
       }
     }
   }
-  
+
   // Impose that every cluster must have a non-pronoun.
-  // This is done by defining a OR factor for each pronoun, 
+  // This is done by defining a OR factor for each pronoun,
   // linked to all the pairs formed by that pronoun and each noun word.
   for (int i = 0; i < num_words; ++i) {
     if (!is_pronoun[i]) continue;
@@ -134,4 +135,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-

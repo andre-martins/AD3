@@ -21,8 +21,8 @@
 //
 // This file shows an example of AD3 being used for inference in a grid-shaped
 // Potts model. We illustrate with two settings: one in which only pairwise
-// factors (FactorDense with two multi-variables) are used, and another in 
-// which horizontal and vertical lines of the grid are handled with a 
+// factors (FactorDense with two multi-variables) are used, and another in
+// which horizontal and vertical lines of the grid are handled with a
 // a sequential factor. For this, we define a "sequence factor" which implements
 // the Viterbi algorithm for decoding.
 // This is done by deriving classes FactorSequence.
@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
 
   // Create factor graph.
   AD3::FactorGraph factor_graph;
+  factor_graph.SetVerbosity(2);
 
   // Create a multi-valued variable for each position in the grid.
   srand((unsigned)time(NULL));
@@ -254,7 +255,7 @@ void GetBestConfiguration(int grid_size, int num_states,
       }
       offset += num_states;
       best_states[i][j] = best;
-      value += multi_variables[i][j]->GetLogPotential(best); 
+      value += multi_variables[i][j]->GetLogPotential(best);
       if (j > 0 && best_states[i][j-1] == best) value += alpha;
       if (i > 0 && best_states[i-1][j] == best) value += alpha;
       cout << best;
