@@ -2,38 +2,31 @@ from __future__ import print_function
 import numpy as np
 
 import ad3.factor_graph as fg
+from ad3 import solve
 
-num_nodes = 100
-lower_bound = 30  # Minimum number of zeros.
+rng = np.random.RandomState(0)
+
+num_nodes = 10
+lower_bound = 3  # Minimum number of zeros.
 upper_bound = num_nodes  # Maximum number of zeros.
 max_num_bins = lower_bound + 2
 counting_state = 1
 
 # Decide whether each position counts for budget.
-counts_for_budget = []
-for i in range(num_nodes):
-    value = np.random.uniform()
-    if value < 0.2:
-        counts_for_budget.append(False)
-    else:
-        counts_for_budget.append(True)
-
-print(counts_for_budget)
+counts_for_budget = rng.uniform(size=num_nodes) < 0.2
 
 # Create a random tree.
 max_num_children = 5
 parents = [-1] * num_nodes
 available_nodes = list(range(1, num_nodes))
 nodes_to_process = [0]
-while len(nodes_to_process) > 0:
+while len(nodes_to_process) and len(available_nodes):
     i = nodes_to_process.pop()
-    num_children = 1 + np.floor(np.random.uniform() * max_num_children)
-    if num_children > len(available_nodes):
-        num_children = len(available_nodes)
-    ind_children = np.random.permutation(len(available_nodes))[0:num_children]
-    children = []
-    for ind in ind_children:
-        children.append(available_nodes[ind])
+    num_available = len(available_nodes)
+    max_available = min(max_num_children, num_available)
+    num_children = rng.randint(1, max_available + 1)
+    ind_children = rng.permutation(num_available)[:num_children]
+    children = [available_nodes[j] for j in ind_children]
     for j in children:
         parents[j] = i
         nodes_to_process.insert(0, j)
@@ -41,183 +34,77 @@ while len(nodes_to_process) > 0:
 
 print(parents)
 
+# generate random potentials
+var_log_potentials = rng.randn(num_nodes)
+edge_log_potentials = rng.randn(num_nodes - 1, 4)
+
 # 1) Build a factor graph using DENSE factors.
-pairwise_factor_graph = fg.PFactorGraph()
+pairwise_fg = fg.PFactorGraph()
 multi_variables = []
 for i in range(num_nodes):
-    multi_variable = pairwise_factor_graph.create_multi_variable(2)
-    value = np.random.normal()
-    multi_variable.set_log_potential(0, 0.0)
-    multi_variable.set_log_potential(1, value)
+    multi_variable = pairwise_fg.create_multi_variable(2)
+    multi_variable[0] = 0
+    multi_variable[1] = var_log_potentials[i]
     multi_variables.append(multi_variable)
 
-description = ''
-num_factors = 0
 
-edge_log_potentials = []
-edge_log_potentials.append([])
+# random edge potentials
 for i in range(1, num_nodes):
-    p = parents[i]
-    edge_log_potentials.append([])
-    for k in range(2):
-        for j in range(2):
-            value = np.random.normal()
-            edge_log_potentials[i].append(value)
-    edge_variables = []
-    edge_variables.append(multi_variables[p])
-    edge_variables.append(multi_variables[i])
-    pairwise_factor_graph.create_factor_dense(edge_variables,
-                                              edge_log_potentials[i])
-    num_factors += 1
+    variables = [multi_variables[i], multi_variables[parents[i]]]
+    pairwise_fg.create_factor_dense(variables, edge_log_potentials[i - 1])
 
-    # Print factor to string.
-    description += 'DENSE ' + str(4)
-    for k in range(2):
-        description += ' ' + str(1 + multi_variables[p].get_state(k).get_id())
-    for j in range(2):
-        description += ' ' + str(1 + multi_variables[i].get_state(j).get_id())
-    description += ' ' + str(2)
-    description += ' ' + str(2)
-    description += ' ' + str(2)
-    t = 0
-    for k in range(2):
-        for j in range(2):
-            description += ' ' + str(edge_log_potentials[i][t])
-            t += 1
-    description += '\n'
 
 # If there are upper/lower bounds, add budget factors.
 if upper_bound >= 0 or lower_bound >= 0:
-    variables = []
-    for i in range(num_nodes):
-        if counts_for_budget[i]:
-            variables.append(multi_variables[i].get_state(counting_state))
-    # Budget factor for upper bound.
-    negated = [False] * len(variables)
-    pairwise_factor_graph.create_factor_budget(variables, negated, upper_bound)
-    num_factors += 1
-
-    # Print factor to string.
-    num_counting_nodes = len(
-        [i for i in range(num_nodes) if counts_for_budget[i]])
-    description += 'BUDGET ' + str(num_counting_nodes)
-    for i in range(num_nodes):
-        if counts_for_budget[i]:
-            description += ' ' + str(
-                1 + multi_variables[i].get_state(counting_state).get_id())
-    description += ' ' + str(upper_bound)
-    description += '\n'
-
-    # Budget factor for lower bound.
-    negated = [True] * len(variables)
-    pairwise_factor_graph.create_factor_budget(variables, negated,
+    variables = [var for var, flag in zip(multi_variables, counts_for_budget)
+                 if flag]
+    negated = [False for _ in variables]
+    pairwise_fg.create_factor_budget(variables, negated, upper_bound)
+    negated = [True for _ in variables]
+    pairwise_fg.create_factor_budget(variables, negated,
                                                len(variables) - lower_bound)
-    num_factors += 1
 
-    # Print factor to string.
-    description += 'BUDGET ' + str(num_counting_nodes)
-    for i in range(num_nodes):
-        if counts_for_budget[i]:
-            description += ' ' + str(
-                -(1 + multi_variables[i].get_state(counting_state).get_id()))
-    description += ' ' + str(num_counting_nodes - lower_bound)
-    description += '\n'
+# Run AD3.
+value, posteriors, additionals, status = solve(pairwise_fg, max_iter=10,
+                                               verbose=0,
+                                               branch_and_bound=True)
 
-# Write factor graph to file.
-f = open('example_binary_tree_dense.fg', 'w')
-f.write(str(2 * num_nodes) + '\n')
-f.write(str(num_factors) + '\n')
-for i in range(num_nodes):
-    for j in range(2):
-        f.write(str(multi_variables[i].get_log_potential(j)) + '\n')
-f.write(description)
-f.close()
-
-# Run AD3.        
-pairwise_factor_graph.set_eta_ad3(.1)
-pairwise_factor_graph.adapt_eta_ad3(True)
-pairwise_factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors = pairwise_factor_graph.solve_exact_map_ad3()
-
-# Print solution.
-t = 0
-best_states = []
-for i in range(num_nodes):
-    local_posteriors = posteriors[t:(t + 2)]
-    j = np.argmax(local_posteriors)
-    best_states.append(j)
-    t += 2
-
+best_states = np.array(posteriors).reshape(-1, 2).argmax(axis=1)
 print("Solution using DENSE and BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a BINARY_TREE factor.
-factor_graph = fg.PFactorGraph()
+tree_fg = fg.PFactorGraph()
 
-variable_log_potentials = []
-additional_log_potentials = []
-num_current_states = 2
-value = multi_variables[0].get_log_potential(1)
-variable_log_potentials.append(value)
-
-for i in range(1, num_nodes):
-    p = parents[i]
-    num_previous_states = 2
-    num_current_states = 2
-    value = multi_variables[i].get_log_potential(1)
-    variable_log_potentials.append(value)
-    count = 0
-    for k in range(2):
-        for j in range(2):
-            value = edge_log_potentials[i][count]
-            count += 1
-            additional_log_potentials.append(value)
-
-binary_variables = []
-factors = []
-
-for i in range(len(variable_log_potentials)):
-    binary_variable = factor_graph.create_binary_variable()
-    binary_variable.set_log_potential(variable_log_potentials[i])
-    binary_variables.append(binary_variable)
-
-if upper_bound >= 0 or lower_bound >= 0:
-    for i in range(num_nodes + 1):
-        if i < lower_bound or i > upper_bound:
-            additional_log_potentials.append(-1000.0)
-        else:
-            additional_log_potentials.append(0.0)
-
-    factor = fg.PFactorBinaryTreeCounts()
-    variables = binary_variables
-    factor_graph.declare_factor(factor, variables, True)
-    has_count_scores = [False] * len(parents)
-    has_count_scores[0] = True
-    factor.initialize(parents, counts_for_budget, has_count_scores,
-                      max_num_bins)
-    factor.set_additional_log_potentials(additional_log_potentials)
-    factors.append(factor)
-else:
-    factor = fg.PFactorBinaryTree()
-    variables = binary_variables
-    factor_graph.declare_factor(factor, variables, True)
-    factor.initialize(parents)
-    factor.set_additional_log_potentials(additional_log_potentials)
-    factors.append(factor)
-
-# Run AD3.        
-factor_graph.set_eta_ad3(.1)
-factor_graph.adapt_eta_ad3(True)
-factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
-
-# Print solution.
-t = 0
-best_states = []
+variables = []
 for i in range(num_nodes):
-    if posteriors[t] > 0.5:
-        j = 1
-    else:
-        j = 0
-    best_states.append(j)
-    t += 1
+    var = tree_fg.create_binary_variable()
+    var.set_log_potential(var_log_potentials[i])
+    variables.append(var)
+
+#  if False and upper_bound >= 0 or lower_bound >= 0:
+    #  additionals = np.zeros(num_nodes + 1)
+    #  ix = np.arange(num_nodes + 1)
+    #  additionals[ix < lower_bound] = -1000
+    #  additionals[ix > upper_bound] = -1000
+    #  tree = fg.PFactorBinaryTreeCounts()
+    #  tree_fg.declare_factor(tree, variables, True)
+    #  has_count_scores = [False for _ in parents]
+    #  has_count_scores[0] = True
+    #  tree.initialize(parents, counts_for_budget, has_count_scores, max_num_bins)
+    #  tree.set_additional_log_potentials(additionals)
+
+factors = []
+if True:
+    tree = fg.PFactorBinaryTree()
+    tree_fg.declare_factor(tree, variables, True)
+    tree.initialize(parents)
+    tree.set_additional_log_potentials([])
+    factors.append(tree)
+
+# Run AD3.
+value, posteriors, additionals, status = solve(tree_fg, max_iter=10,
+                                               verbose=0,
+                                               branch_and_bound=False)
+
+best_states = np.array(posteriors).reshape(-1, 2).argmax(axis=1)
 print("Solution using BINARY_TREE_COUNTS factor:", best_states)
