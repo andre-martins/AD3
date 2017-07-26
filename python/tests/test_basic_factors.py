@@ -15,10 +15,10 @@ def test_pair():
 
     val = 100.0
 
-    pair = graph.create_factor_pair([a, b], val)
+    graph.create_factor_pair([a, b], val)
     assert a.get_degree() == b.get_degree() == 1
 
-    pair = graph.create_factor_pair([a, b], -val)
+    graph.create_factor_pair([a, b], -val)
     assert a.get_degree() == b.get_degree() == 2
 
 
@@ -74,6 +74,7 @@ def test_dense_at_most_one():
 
 _logic = ['XOR', 'OR', 'XOROUT', 'ATMOSTONE', 'OROUT', 'ANDOUT', 'IMPLY']
 
+
 @pytest.mark.parametrize('factor_type', _logic)
 def test_smoke_logic(factor_type):
     graph = fg.PFactorGraph()
@@ -111,7 +112,7 @@ def test_logic_constraints():
     var_b = graph.create_multi_variable(n_states)
 
     var_a.set_log_potential(0, 1)  # A = 0
-    var_b.set_log_potential(1, 10) # B = likely 1, possibly 2
+    var_b.set_log_potential(1, 10)  # B = likely 1, possibly 2
     var_b.set_log_potential(2, 9.5)
 
     graph.fix_multi_variables_without_factors()

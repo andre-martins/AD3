@@ -2,23 +2,39 @@ from __future__ import print_function
 import numpy as np
 
 import ad3.factor_graph as fg
+from ad3 import solve
+
+
+def var_len_argmax(posteriors, num_states):
+    t = 0
+    best_states = []
+    for i in range(len(num_states)):
+        local_posteriors = posteriors[t:(t + num_states[i])]
+        j = np.argmax(local_posteriors)
+        best_states.append(j)
+        t += num_states[i]
+    return best_states
+
 
 num_nodes = 5
 max_num_states = 2
 lower_bound = 3  # Minimum number of zeros.
 upper_bound = 4  # Maximum number of zeros.
 
+rng = np.random.RandomState(0)
+
 # Create a random tree.
 max_num_children = 5
 parents = [-1] * num_nodes
 available_nodes = list(range(1, num_nodes))
 nodes_to_process = [0]
-while len(nodes_to_process) > 0:
+
+while len(nodes_to_process) and len(available_nodes):
     i = nodes_to_process.pop()
-    num_children = 1 + np.floor(np.random.uniform() * max_num_children)
-    if num_children > len(available_nodes):
-        num_children = len(available_nodes)
-    ind_children = np.random.permutation(len(available_nodes))[0:num_children]
+    num_available = len(available_nodes)
+    max_available = min(max_num_children, num_available)
+    num_children = rng.randint(1, max_available + 1)
+    ind_children = rng.permutation(num_available)[:num_children]
     children = []
     for ind in ind_children:
         children.append(available_nodes[ind])
@@ -30,38 +46,30 @@ while len(nodes_to_process) > 0:
 print("Randomly picked tree:", parents)
 
 # Design number of states for each node.
-num_states_array = 1 + np.floor(
-    np.random.uniform(size=num_nodes) * max_num_states)
-num_states = [int(x) for x in num_states_array]
+num_states = rng.randint(1, max_num_states + 1, size=num_nodes)
 print("States per node:", num_states)
 
+# generate random potentials
+var_log_potentials = [rng.randn(n) for n in num_states]
+edge_log_potentials = [rng.randn(num_states[parents[i]] * num_states[i])
+                       for i in range(1, num_nodes)]
+
 # 1) Build a factor graph using DENSE factors.
-pairwise_factor_graph = fg.PFactorGraph()
+pairwise_fg = fg.PFactorGraph()
 multi_variables = []
 for i in range(num_nodes):
-    multi_variable = pairwise_factor_graph.create_multi_variable(num_states[i])
-    for state in range(num_states[i]):
-        value = np.random.normal()
-        multi_variable.set_log_potential(state, value)
-    multi_variables.append(multi_variable)
+    var = pairwise_fg.create_multi_variable(num_states[i])
+    var.set_log_potentials(var_log_potentials[i])
+    multi_variables.append(var)
 
 description = ''
 num_factors = 0
 
-edge_log_potentials = []
-edge_log_potentials.append([])
 for i in range(1, num_nodes):
     p = parents[i]
-    edge_log_potentials.append([])
-    for k in range(num_states[p]):
-        for j in range(num_states[i]):
-            value = np.random.normal()
-            edge_log_potentials[i].append(value)
-    edge_variables = []
-    edge_variables.append(multi_variables[p])
-    edge_variables.append(multi_variables[i])
-    pairwise_factor_graph.create_factor_dense(edge_variables,
-                                              edge_log_potentials[i])
+    edge_variables = [multi_variables[p], multi_variables[i]]
+    pairwise_fg.create_factor_dense(edge_variables,
+                                    edge_log_potentials[i - 1])
     num_factors += 1
 
     # Print factor to string.
@@ -76,17 +84,15 @@ for i in range(1, num_nodes):
     t = 0
     for k in range(num_states[p]):
         for j in range(num_states[i]):
-            description += ' ' + str(edge_log_potentials[i][t])
+            description += ' ' + str(edge_log_potentials[i - 1][t])
             t += 1
     description += '\n'
 
 if upper_bound >= 0 or lower_bound >= 0:
-    variables = []
-    for i in range(num_nodes):
-        variables.append(multi_variables[i].get_state(0))
+    binary_vars = [var.get_state(0) for var in multi_variables]
+    negated = [False for _ in binary_vars]
     # Budget factor for upper bound.
-    negated = [False] * num_nodes
-    pairwise_factor_graph.create_factor_budget(variables, negated, upper_bound)
+    pairwise_fg.create_factor_budget(binary_vars, negated, upper_bound)
     num_factors += 1
 
     # Print factor to string.
@@ -97,16 +103,16 @@ if upper_bound >= 0 or lower_bound >= 0:
     description += '\n'
 
     # Budget factor for lower bound.
-    negated = [True] * num_nodes
-    pairwise_factor_graph.create_factor_budget(variables, negated,
-                                               num_nodes - lower_bound)
+    negated = [True for _ in binary_vars]
+    pairwise_fg.create_factor_budget(binary_vars, negated,
+                                     num_nodes - lower_bound)
     num_factors += 1
 
     # Print factor to string.
     description += 'BUDGET ' + str(num_nodes)
     for i in range(num_nodes):
         description += ' ' + str(
-            -(1 + multi_variables[i].get_state(0).get_id()))
+            -(1 + binary_vars[i].get_id()))
     description += ' ' + str(num_nodes - lower_bound)
     description += '\n'
 
@@ -121,56 +127,43 @@ if upper_bound >= 0 or lower_bound >= 0:
     f.close()
 
     # Run AD3.
-    pairwise_factor_graph.set_eta_ad3(.1)
-    pairwise_factor_graph.adapt_eta_ad3(True)
-    pairwise_factor_graph.set_max_iterations_ad3(1000)
-    value, posteriors, additional_posteriors, status = pairwise_factor_graph.solve_lp_map_ad3()
-
+    value, posteriors, additionals, status = solve(pairwise_fg, max_iter=10,
+                                                   verbose=0,
+                                                   branch_and_bound=True)
     # Print solution.
-    t = 0
-    best_states = []
-    for i in range(num_nodes):
-        local_posteriors = posteriors[t:(t + num_states[i])]
-        j = np.argmax(local_posteriors)
-        best_states.append(j)
-        t += num_states[i]
+    best_states = var_len_argmax(posteriors, num_states)
     print("Solution using DENSE and BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a GENERAL_TREE factor.
 factor_graph = fg.PFactorGraph()
 
-variable_log_potentials = []
+flat_var_log_potentials = np.concatenate(var_log_potentials)
+
 additional_log_potentials = []
 num_current_states = num_states[0]
-for j in range(num_current_states):
-    value = multi_variables[0].get_log_potential(j)
-    variable_log_potentials.append(value)
 for i in range(1, num_nodes):
     p = parents[i]
     num_previous_states = num_states[p]
     num_current_states = num_states[i]
-    for j in range(num_current_states):
-        value = multi_variables[i].get_log_potential(j)
-        variable_log_potentials.append(value)
     count = 0
     for k in range(num_previous_states):
         for j in range(num_current_states):
-            value = edge_log_potentials[i][count]
+            value = edge_log_potentials[i - 1][count]
             count += 1
             additional_log_potentials.append(value)
 
 if upper_bound >= 0 or lower_bound >= 0:
-    for b in range(num_nodes + 1):
-        if b >= lower_bound and b <= upper_bound:
-            variable_log_potentials.append(0.0)
-        else:
-            variable_log_potentials.append(-1000.0)
+    bounds = np.zeros(num_nodes + 1)
+    ix = np.arange(num_nodes + 1)
+    bounds[ix < lower_bound] = -1000
+    bounds[ix > upper_bound] = -1000
+    flat_var_log_potentials = np.concatenate([flat_var_log_potentials, bounds])
 
 binary_variables = []
 factors = []
-for i in range(len(variable_log_potentials)):
+for i in range(len(flat_var_log_potentials)):
     binary_variable = factor_graph.create_binary_variable()
-    binary_variable.set_log_potential(variable_log_potentials[i])
+    binary_variable.set_log_potential(flat_var_log_potentials[i])
     binary_variables.append(binary_variable)
 
 if upper_bound >= 0 or lower_bound >= 0:
@@ -180,7 +173,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     f.write(str(len(binary_variables)) + '\n')
     f.write(str(1) + '\n')
     for i in range(len(binary_variables)):
-        f.write(str(variable_log_potentials[i]) + '\n')
+        f.write(str(flat_var_log_potentials[i]) + '\n')
     f.write('GENERAL_TREE_COUNTS ' + str(len(binary_variables)))
     for i in range(len(binary_variables)):
         f.write(' ' + str(i + 1))
@@ -202,18 +195,11 @@ factor.initialize(parents, num_states)
 factor.set_additional_log_potentials(additional_log_potentials)
 factors.append(factor)
 
-# Run AD3.        
-factor_graph.set_eta_ad3(.1)
-factor_graph.adapt_eta_ad3(True)
-factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
+# Run AD3.
+value, posteriors, additionals, status = solve(factor_graph, max_iter=10,
+                                               verbose=0,
+                                               branch_and_bound=True)
 
 # Print solution.
-t = 0
-best_states = []
-for i in range(num_nodes):
-    local_posteriors = posteriors[t:(t + num_states[i])]
-    j = np.argmax(local_posteriors)
-    best_states.append(j)
-    t += num_states[i]
+best_states = var_len_argmax(posteriors, num_states)
 print("Solution using GENERAL_TREE_COUNTS factor:", best_states)

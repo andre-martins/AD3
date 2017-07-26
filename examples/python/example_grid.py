@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import ad3.factor_graph as fg
+from ad3 import solve
 
 grid_size = 20
 num_states = 5
@@ -70,10 +71,10 @@ if use_sequence_factors:
             binary_variables[i].append([])
             for k in range(num_states):
                 # Assign a random log-potential to each state.
-                state_variable = sequential_factor_graph.create_binary_variable()
+                var = sequential_factor_graph.create_binary_variable()
                 log_potential = multi_variables[i][j].get_log_potential(k)
-                state_variable.set_log_potential(log_potential)
-                binary_variables[i][j].append(state_variable)
+                var.set_log_potential(log_potential)
+                binary_variables[i][j].append(var)
 
     # Design the edge log-potentials.
     # Right now they are diagonal and favoring smooth configurations, but
@@ -128,12 +129,8 @@ if use_sequence_factors:
         factor.set_additional_log_potentials(additional_log_potentials)
         factors.append(factor)
 
-    sequential_factor_graph.set_eta_ad3(.1)
-    sequential_factor_graph.adapt_eta_ad3(True)
-    sequential_factor_graph.set_max_iterations_ad3(1000)
-
     tic = time()
-    value, marginals, edge_marginals, solver_status = sequential_factor_graph.solve_lp_map_ad3()
+    _, marginals, _, _ = solve(sequential_factor_graph)
     toc = time()
 
     res = np.array(marginals).reshape(grid_size, grid_size, num_states)

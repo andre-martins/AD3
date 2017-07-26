@@ -20,6 +20,7 @@ max_num_children = 5
 parents = [-1] * num_nodes
 available_nodes = list(range(1, num_nodes))
 nodes_to_process = [0]
+
 while len(nodes_to_process) and len(available_nodes):
     i = nodes_to_process.pop()
     num_available = len(available_nodes)
@@ -62,7 +63,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     pairwise_fg.create_factor_budget(variables, negated, upper_bound)
     negated = [True for _ in variables]
     pairwise_fg.create_factor_budget(variables, negated,
-                                               len(variables) - lower_bound)
+                                     len(variables) - lower_bound)
 
 # Run AD3.
 value, posteriors, additionals, status = solve(pairwise_fg, max_iter=10,
@@ -81,30 +82,29 @@ for i in range(num_nodes):
     var.set_log_potential(var_log_potentials[i])
     variables.append(var)
 
-#  if False and upper_bound >= 0 or lower_bound >= 0:
-    #  additionals = np.zeros(num_nodes + 1)
-    #  ix = np.arange(num_nodes + 1)
-    #  additionals[ix < lower_bound] = -1000
-    #  additionals[ix > upper_bound] = -1000
-    #  tree = fg.PFactorBinaryTreeCounts()
-    #  tree_fg.declare_factor(tree, variables, True)
-    #  has_count_scores = [False for _ in parents]
-    #  has_count_scores[0] = True
-    #  tree.initialize(parents, counts_for_budget, has_count_scores, max_num_bins)
-    #  tree.set_additional_log_potentials(additionals)
-
-factors = []
-if True:
+if upper_bound >= 0 or lower_bound >= 0:
+    additionals = np.zeros(num_nodes + 1)
+    ix = np.arange(num_nodes + 1)
+    additionals[ix < lower_bound] = -1000
+    additionals[ix > upper_bound] = -1000
+    tree = fg.PFactorBinaryTreeCounts()
+    tree_fg.declare_factor(tree, variables, True)
+    has_count_scores = [False for _ in parents]
+    has_count_scores[0] = True
+    tree.initialize(parents, counts_for_budget, has_count_scores, max_num_bins)
+    additionals = np.concatenate([edge_log_potentials.ravel(), additionals])
+    tree.set_additional_log_potentials(additionals)
+else:
     tree = fg.PFactorBinaryTree()
     tree_fg.declare_factor(tree, variables, True)
     tree.initialize(parents)
-    tree.set_additional_log_potentials([])
-    factors.append(tree)
+    tree.set_additional_log_potentials(edge_log_potentials.ravel())
 
 # Run AD3.
 value, posteriors, additionals, status = solve(tree_fg, max_iter=10,
                                                verbose=0,
                                                branch_and_bound=False)
 
-best_states = np.array(posteriors).reshape(-1, 2).argmax(axis=1)
-print("Solution using BINARY_TREE_COUNTS factor:", best_states)
+# for consistent printing with other approach
+posteriors = np.array(posteriors).astype(np.int)
+print("Solution using BINARY_TREE_COUNTS factor:", posteriors)

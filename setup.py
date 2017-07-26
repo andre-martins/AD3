@@ -28,9 +28,9 @@ libad3 = ('ad3', {
 
 
 class bdist_egg_fix(bdist_egg):
-  def run(self):
-      self.call_command('build_clib')
-      bdist_egg.run(self)
+    def run(self):
+        self.call_command('build_clib')
+        bdist_egg.run(self)
 
 
 setup(name='ad3',
