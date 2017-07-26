@@ -28,9 +28,9 @@ libad3 = ('ad3', {
 
 
 class bdist_egg_fix(bdist_egg):
-    def run(self):
-        self.call_command('build_clib')
-        bdist_egg.run(self)
+  def run(self):
+      self.call_command('build_clib')
+      bdist_egg.run(self)
 
 
 setup(name='ad3',
@@ -43,7 +43,6 @@ setup(name='ad3',
       packages=['ad3', 'ad3/tests'],
       libraries=[libad3],
       cmdclass={'bdist_egg': bdist_egg_fix},
-      # cmdclass={'build_ext': build_ext},
       ext_modules=[Extension("ad3.factor_graph",
                              ["python/factor_graph.cpp"],
                              include_dirs=[".", "ad3"],
