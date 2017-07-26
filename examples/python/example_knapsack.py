@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
-import pdb
 import ad3.factor_graph as fg
+from ad3 import solve
 import time
 
 
@@ -11,18 +11,20 @@ def test_random_instance(n):
     scores = np.random.randn(n)
 
     tic = time.clock()
-    x_gold = solve_lp_knapsack_lpsolve(scores, costs, budget)
-    toc = time.clock()
-    print('lpsolve: {:.2f}'.format(toc - tic))
-
-    tic = time.clock()
     x = solve_lp_knapsack_ad3(scores, costs, budget)
     toc = time.clock()
     print('ad3: {:.2f}'.format(toc - tic))
 
-    res = x - x_gold
+    try:
+        tic = time.clock()
+        x_gold = solve_lp_knapsack_lpsolve(scores, costs, budget)
+        toc = time.clock()
+        print('lpsolve: {:.2f}'.format(toc - tic))
+        res = x - x_gold
+        assert np.linalg.norm(res) < 1e-6
 
-    assert np.linalg.norm(res) < 1e-6
+    except ImportError:
+        print('lpsolve not available')
 
 
 def solve_lp_knapsack_ad3(scores, costs, budget):
@@ -38,12 +40,7 @@ def solve_lp_knapsack_ad3(scores, costs, budget):
                                         budget)
 
     # Run AD3.
-    factor_graph.set_verbosity(1)
-    factor_graph.set_eta_ad3(.1)
-    factor_graph.adapt_eta_ad3(True)
-    factor_graph.set_max_iterations_ad3(1000)
-    value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
-
+    _, posteriors, _, _ = solve(factor_graph)
     return posteriors
 
 

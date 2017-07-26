@@ -15,10 +15,10 @@ def test_sequence_dense():
     graph = fg.PFactorGraph()
 
     vars_expected = [0, 1, None, None, 1]
-    vars = [graph.create_multi_variable(n_states) for _ in vars_expected]
-    factors = [graph.create_factor_dense([prev, curr], transition)
-               for prev, curr in zip(vars, vars[1:])]
-    for var, ix in zip(vars, vars_expected):
+    variables = [graph.create_multi_variable(n_states) for _ in vars_expected]
+    for prev, curr in zip(variables, variables[1:]):
+        graph.create_factor_dense([prev, curr], transition)
+    for var, ix in zip(variables, vars_expected):
         if ix is not None:
             var.set_log_potential(ix, 1)
 

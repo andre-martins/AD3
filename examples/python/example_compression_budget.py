@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 
 import ad3.factor_graph as fg
+from ad3 import solve
 
 length = 30
 budget = 10
@@ -82,10 +83,7 @@ factor_graph.create_factor_budget(variables, negated, budget)
 num_factors += 1
 
 # Run AD3.
-factor_graph.set_eta_ad3(.1)
-factor_graph.adapt_eta_ad3(True)
-factor_graph.set_max_iterations_ad3(1000)
-value, posteriors, additional_posteriors, status = factor_graph.solve_lp_map_ad3()
+_, posteriors, _, _ = solve(factor_graph)
 
 # Print solution.
 t = 0
@@ -122,8 +120,8 @@ for i in range(length + 1):
             value = edge_log_potentials[index]
             index += 1
             if (k == num_previous_states - 1 and
-                        l == num_current_states - 1 and
-                            i - 1 in bigram_positions):
+                    l == num_current_states - 1 and
+                    i - 1 in bigram_positions):
                 variable_log_potentials.append(value)
             else:
                 additional_log_potentials.append(value)
@@ -144,14 +142,14 @@ factor.initialize(length, budget, counts_for_budget, bigram_positions)
 factor.set_additional_log_potentials(additional_log_potentials)
 factors.append(factor)
 
-# Run AD3.        
+# Run AD3.
 compression_factor_graph.set_eta_ad3(.1)
 compression_factor_graph.adapt_eta_ad3(True)
 compression_factor_graph.set_max_iterations_ad3(1000)
 
 print("Bigrams at", bigram_positions)
 
-value, posteriors, additional_posteriors, status = compression_factor_graph.solve_lp_map_ad3()
+_, posteriors, _, _ = solve(compression_factor_graph)
 
 # Print solution.
 t = 0

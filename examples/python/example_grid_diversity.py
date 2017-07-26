@@ -7,8 +7,8 @@ import ad3.factor_graph as fg
 
 grid_size = 10
 num_states = 5
-num_diverse_outputs = 4 # Number of diverse outputs to generate.
-min_hamming_cost = 32 # Minimum Hamming cost between any pair of outputs.
+num_diverse_outputs = 4  # Number of diverse outputs to generate.
+min_hamming_cost = 32  # Minimum Hamming cost between any pair of outputs.
 
 factor_graph = fg.PFactorGraph()
 
@@ -31,17 +31,18 @@ potts_potentials = potts_matrix.ravel().tolist()
 
 for i, j in itertools.product(range(grid_size), repeat=2):
     if (j > 0):
-        #horizontal edge
+        # Horizontal edge
         edge_variables = [multi_variables[i][j - 1], multi_variables[i][j]]
         factor_graph.create_factor_dense(edge_variables, potts_potentials)
-
         # Print factor to string.
-        num_factors += 1    
+        num_factors += 1
         description += 'DENSE ' + str(2*num_states)
         for k in range(num_states):
-            description += ' ' + str(1 + multi_variables[i][j - 1].get_state(k).get_id())
+            var = multi_variables[i][j - 1]
+            description += ' ' + str(1 + var.get_state(k).get_id())
         for k in range(num_states):
-            description += ' ' + str(1 + multi_variables[i][j].get_state(k).get_id())
+            var = multi_variables[i][j]
+            description += ' ' + str(1 + var.get_state(k).get_id())
         description += ' ' + str(2)
         description += ' ' + str(num_states)
         description += ' ' + str(num_states)
@@ -52,18 +53,20 @@ for i, j in itertools.product(range(grid_size), repeat=2):
                 t += 1
         description += '\n'
 
-    if (i > 0):
-        #vertical edge
+    if i > 0:
+        # vertical edge
         edge_variables = [multi_variables[i - 1][j], multi_variables[i][j]]
         factor_graph.create_factor_dense(edge_variables, potts_potentials)
 
         # Print factor to string.
-        num_factors += 1    
+        num_factors += 1
         description += 'DENSE ' + str(2*num_states)
         for k in range(num_states):
-            description += ' ' + str(1 + multi_variables[i - 1][j].get_state(k).get_id())
+            var = multi_variables[i - 1][j]
+            description += ' ' + str(1 + var.get_state(k).get_id())
         for k in range(num_states):
-            description += ' ' + str(1 + multi_variables[i][j].get_state(k).get_id())
+            var = multi_variables[i][j]
+            description += ' ' + str(1 + var.get_state(k).get_id())
         description += ' ' + str(2)
         description += ' ' + str(num_states)
         description += ' ' + str(num_states)
@@ -79,47 +82,45 @@ plt.matshow(np.argmax(random_grid, axis=-1), vmin=0, vmax=4)
 
 for t in range(num_diverse_outputs):
 
-  # Write factor graph to file.
-  f = open('example_diversity_' + str(t) + '.fg', 'w')
-  f.write(str(num_states * grid_size * grid_size) + '\n')
-  f.write(str(num_factors) + '\n')
-  for i in range(grid_size):
-    for j in range(grid_size):
-        for k in range(num_states):
-          f.write(str(multi_variables[i][j].get_log_potential(k)) + '\n')
-  f.write(description)
-  f.close()  
+    # Write factor graph to file.
+    f = open('example_diversity_' + str(t) + '.fg', 'w')
+    f.write(str(num_states * grid_size * grid_size) + '\n')
+    f.write(str(num_factors) + '\n')
+    for i in range(grid_size):
+        for j in range(grid_size):
+            for k in range(num_states):
+                f.write(str(multi_variables[i][j].get_log_potential(k)) + '\n')
+    f.write(description)
+    f.close()
 
-  # Solve with AD3.
-  factor_graph.set_eta_ad3(.1)
-  factor_graph.adapt_eta_ad3(True)
-  factor_graph.set_max_iterations_ad3(1000)
-  value, marginals, edge_marginals, status = factor_graph.solve_lp_map_ad3()
+    # Solve with AD3.
+    factor_graph.set_eta_ad3(.1)
+    factor_graph.adapt_eta_ad3(True)
+    factor_graph.set_max_iterations_ad3(1000)
+    value, marginals, edge_marginals, status = factor_graph.solve_lp_map_ad3()
 
-  res = np.array(marginals).reshape(grid_size, grid_size, num_states)
-  output = np.argmax(res, axis=-1)
-  plt.matshow(output, vmin=0, vmax=4)
-  plt.title("{} diverse outputs".format(t))
+    res = np.array(marginals).reshape(grid_size, grid_size, num_states)
+    output = np.argmax(res, axis=-1)
+    plt.matshow(output, vmin=0, vmax=4)
+    plt.title("{} diverse outputs".format(t))
 
-  # Add another budget constraint.
-  variables = []
-  for i, j in itertools.product(range(grid_size), repeat=2):
-      v = output[i][j]
-      variables.append(multi_variables[i][j].get_state(v))
-  # Budget factor imposing a minimum Hamming cost w.r.t. this output.
-  negated = [False] * len(variables)
-  factor_graph.create_factor_budget(variables, negated,
-                                    len(variables) - min_hamming_cost)
-                                        
-  # Print factor to string.
-  num_factors += 1    
-  description += 'BUDGET ' + str(len(variables))
-  for var in variables:
-      description += ' ' + str(1 + var.get_id())
-  description += ' ' + str(len(variables) - min_hamming_cost)
-  description += '\n'
-                                        
-      
+    # Add another budget constraint.
+    variables = []
+    for i, j in itertools.product(range(grid_size), repeat=2):
+        v = output[i][j]
+        variables.append(multi_variables[i][j].get_state(v))
+    # Budget factor imposing a minimum Hamming cost w.r.t. this output.
+    negated = [False] * len(variables)
+    factor_graph.create_factor_budget(variables, negated,
+                                      len(variables) - min_hamming_cost)
+
+    # Print factor to string.
+    num_factors += 1
+    description += 'BUDGET ' + str(len(variables))
+    for var in variables:
+        description += ' ' + str(1 + var.get_id())
+    description += ' ' + str(len(variables) - min_hamming_cost)
+    description += '\n'
+
+
 plt.show()
-
-

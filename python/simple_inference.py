@@ -5,7 +5,7 @@ from . import factor_graph as fg
 
 
 def solve(factor_graph, eta=0.1, adapt=True, max_iter=5000, verbose=False,
-           branch_and_bound=False):
+          branch_and_bound=False):
     factor_graph.set_eta_ad3(.1)
     factor_graph.adapt_eta_ad3(True)
     factor_graph.set_max_iterations_ad3(5000)
@@ -93,6 +93,5 @@ def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000,
     marginals = np.array(marginals).reshape(unaries.shape)
 
     edge_marginals = np.array(edge_marginals).reshape(-1, n_states ** 2)
-    solver_string = ["integral", "fractional", "infeasible", "unsolved"]
 
     return marginals, edge_marginals, value, solver_status
