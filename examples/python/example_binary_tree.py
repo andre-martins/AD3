@@ -4,7 +4,7 @@ import numpy as np
 import ad3.factor_graph as fg
 from ad3 import solve
 
-rng = np.random.RandomState(0)
+rng = np.random.RandomState(1)
 
 num_nodes = 10
 lower_bound = 3  # Minimum number of zeros.
@@ -14,6 +14,7 @@ counting_state = 1
 
 # Decide whether each position counts for budget.
 counts_for_budget = rng.uniform(size=num_nodes) < 0.2
+print(counts_for_budget)
 
 # Create a random tree.
 max_num_children = 5
@@ -51,13 +52,14 @@ for i in range(num_nodes):
 
 # random edge potentials
 for i in range(1, num_nodes):
-    variables = [multi_variables[i], multi_variables[parents[i]]]
-    pairwise_fg.create_factor_dense(variables, edge_log_potentials[i - 1])
-
+    var = multi_variables[i]
+    parent = multi_variables[parents[i]]
+    pairwise_fg.create_factor_dense([parent, var], edge_log_potentials[i - 1])
 
 # If there are upper/lower bounds, add budget factors.
 if upper_bound >= 0 or lower_bound >= 0:
-    variables = [var for var, flag in zip(multi_variables, counts_for_budget)
+    variables = [var.get_state(counting_state)
+                 for var, flag in zip(multi_variables, counts_for_budget)
                  if flag]
     negated = [False for _ in variables]
     pairwise_fg.create_factor_budget(variables, negated, upper_bound)
@@ -66,7 +68,7 @@ if upper_bound >= 0 or lower_bound >= 0:
                                      len(variables) - lower_bound)
 
 # Run AD3.
-value, posteriors, additionals, status = solve(pairwise_fg, max_iter=10,
+value, posteriors, additionals, status = solve(pairwise_fg,
                                                verbose=0,
                                                branch_and_bound=True)
 
@@ -101,7 +103,7 @@ else:
     tree.set_additional_log_potentials(edge_log_potentials.ravel())
 
 # Run AD3.
-value, posteriors, additionals, status = solve(tree_fg, max_iter=10,
+value, posteriors, additionals, status = solve(tree_fg,
                                                verbose=0,
                                                branch_and_bound=False)
 
