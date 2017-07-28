@@ -22,7 +22,7 @@
 #include "ad3/GenericFactor.h"
 
 // Need to include this because of the class AD3::Sibling.
-#include "examples/parsing/FactorHeadAutomaton.h"
+#include "examples/cpp/parsing/FactorHeadAutomaton.h"
 
 namespace AD3 {
 

@@ -1,24 +1,27 @@
 branches:
   only:
-    - master
+    - newrel 
+
+notifications:
+  email: false
 
 language: python
-notifications:
-  email: false
-python:
-  - "2.7"
-  - "2.6"
-before_install :
-  - sudo apt-get install -qq 
-language: python
-notifications:
-  email: false
-python:
-  - "2.7"
-  - "2.6"
-before_install :
-  - sudo apt-get install -qq libboost-dev
+
+matrix:
+    include:
+        - os: linux
+          sudo: false
+          python: 2.7
+        - os: linux
+          sudo: false
+          python: 3.6
+        - os: osx
+          language: generic
+
 install:
-  - pip install -r --use-mirrors requirements.txt
-  - python setup.py install
-script: true
+  - pip install pytest numpy
+  - python setup.py bdist_wheel
+  - pip install --pre --no-index --find-links dist/ ad3
+
+script:
+  - mkdir empty_folder; cd empty_folder; pytest -vs --pyargs ad3

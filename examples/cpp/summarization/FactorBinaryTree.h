@@ -20,7 +20,7 @@
 #define FACTOR_BINARY_TREE
 
 #include "ad3/GenericFactor.h"
-#include "examples/summarization/FactorGeneralTree.h"
+#include "examples/cpp/summarization/FactorGeneralTree.h"
 
 namespace AD3 {
 
@@ -67,7 +67,7 @@ class FactorBinaryTree : public FactorGeneralTree {
   int GetNumStates(int i) { return 2; }
 
   int GetLength() { return parents_.size(); }
-  
+
  public:
   // Obtain the best configuration.
   void Maximize(const vector<double> &variable_log_potentials,
@@ -118,7 +118,7 @@ class FactorBinaryTree : public FactorGeneralTree {
                     value);
   }
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   void UpdateMarginalsFromConfiguration(
     const Configuration &configuration,
@@ -173,7 +173,7 @@ class FactorBinaryTree : public FactorGeneralTree {
     for (int i = 0; i < selected_nodes1->size(); ++i) {
       if ((*selected_nodes1)[i] != (*selected_nodes2)[i]) return false;
     }
-    return true;    
+    return true;
   }
 
   // Delete configuration.
@@ -185,7 +185,7 @@ class FactorBinaryTree : public FactorGeneralTree {
 
   Configuration CreateConfiguration() {
     vector<int>* selected_nodes = new vector<int>;
-    return static_cast<Configuration>(selected_nodes); 
+    return static_cast<Configuration>(selected_nodes);
   }
 
  public:
@@ -205,7 +205,7 @@ class FactorBinaryTree : public FactorGeneralTree {
       children_[parents_[i]].push_back(i);
     }
 
-    index_edges_.resize(length); 
+    index_edges_.resize(length);
 
     int index = 0;
     // Root does not have incoming edges.
