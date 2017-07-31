@@ -1,5 +1,5 @@
 import pytest
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal
 
 from .. import factor_graph as fg
 
@@ -47,7 +47,7 @@ def test_budget():
 
     graph.create_factor_budget(variables, budget=budget)
     _, assign, _, status = graph.solve()
-    assert_array_equal(assign, [1, 0, 1, 0, 1])
+    assert_array_almost_equal(assign, [1, 0, 1, 0, 1])
 
 
 def test_knapsack():
@@ -72,4 +72,4 @@ def test_knapsack():
 
     graph.create_factor_knapsack(variables, costs, budget)
     _, assign, _, status = graph.solve(branch_and_bound=True)
-    assert_array_equal(assign, [1, 0, 0, 0, 1])
+    assert_array_almost_equal(assign, [1, 0, 0, 0, 1])
