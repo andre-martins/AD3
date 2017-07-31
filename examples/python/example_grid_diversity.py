@@ -1,9 +1,13 @@
 from __future__ import print_function
+import os
 import itertools
 import numpy as np
-import matplotlib.pyplot as plt
 
 import ad3.factor_graph as fg
+
+plot = False if os.environ.get('NOPLOT') else True
+if plot:
+    import matplotlib.pyplot as plt
 
 grid_size = 10
 num_states = 5
@@ -78,7 +82,8 @@ for i, j in itertools.product(range(grid_size), repeat=2):
         description += '\n'
 
 # Plot the evidences.
-plt.matshow(np.argmax(random_grid, axis=-1), vmin=0, vmax=4)
+if plot:
+    plt.matshow(np.argmax(random_grid, axis=-1), vmin=0, vmax=4)
 
 for t in range(num_diverse_outputs):
 
@@ -94,15 +99,15 @@ for t in range(num_diverse_outputs):
     f.close()
 
     # Solve with AD3.
-    factor_graph.set_eta_ad3(.1)
-    factor_graph.adapt_eta_ad3(True)
-    factor_graph.set_max_iterations_ad3(1000)
-    value, marginals, edge_marginals, status = factor_graph.solve_lp_map_ad3()
+    value, marginals, edge_marginals, status = factor_graph.solve()
 
     res = np.array(marginals).reshape(grid_size, grid_size, num_states)
     output = np.argmax(res, axis=-1)
-    plt.matshow(output, vmin=0, vmax=4)
-    plt.title("{} diverse outputs".format(t))
+    if plot:
+        plt.matshow(output, vmin=0, vmax=4)
+        plt.title("{} diverse outputs".format(t))
+    else:
+        print("{} diverse outputs: \n{}".format(t, output))
 
     # Add another budget constraint.
     variables = []
@@ -110,9 +115,8 @@ for t in range(num_diverse_outputs):
         v = output[i][j]
         variables.append(multi_variables[i][j].get_state(v))
     # Budget factor imposing a minimum Hamming cost w.r.t. this output.
-    negated = [False] * len(variables)
-    factor_graph.create_factor_budget(variables, negated,
-                                      len(variables) - min_hamming_cost)
+    factor_graph.create_factor_budget(variables,
+                                      budget=len(variables) - min_hamming_cost)
 
     # Print factor to string.
     num_factors += 1
@@ -122,5 +126,5 @@ for t in range(num_diverse_outputs):
     description += ' ' + str(len(variables) - min_hamming_cost)
     description += '\n'
 
-
-plt.show()
+if plot:
+    plt.show()

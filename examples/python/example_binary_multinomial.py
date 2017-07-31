@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from ad3 import simple_grid, general_graph
 
 
-def example_binary():
+def example_binary(plot=True):
     # generate trivial data
     x = np.ones((10, 10))
     x[:, 5:] = -1
@@ -34,23 +33,27 @@ def example_binary():
                                            pairwise_per_edge)[0], axis=-1)
 
     # plot results
-    plt.figure(figsize=(9, 8))
-    plt.suptitle("Binary distribution", size=20)
-    plt.subplot(231, title="original")
-    plt.imshow(x, interpolation='nearest')
-    plt.subplot(232, title="noisy version")
-    plt.imshow(x_noisy, interpolation='nearest')
-    plt.subplot(234, title="thresholding result")
-    plt.imshow(x_thresh, interpolation='nearest')
-    plt.subplot(235, title="cut_simple")
-    plt.imshow(result, interpolation='nearest')
-    plt.subplot(236, title="cut_from_graph")
-    plt.imshow(result_graph.reshape(x.shape), interpolation='nearest')
-    plt.tight_layout()
-    plt.show()
+    if plot:
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(9, 8))
+        plt.suptitle("Binary distribution", size=20)
+        plt.subplot(231, title="original")
+        plt.imshow(x, interpolation='nearest')
+        plt.subplot(232, title="noisy version")
+        plt.imshow(x_noisy, interpolation='nearest')
+        plt.subplot(234, title="thresholding result")
+        plt.imshow(x_thresh, interpolation='nearest')
+        plt.subplot(235, title="cut_simple")
+        plt.imshow(result, interpolation='nearest')
+        plt.subplot(236, title="cut_from_graph")
+        plt.imshow(result_graph.reshape(x.shape), interpolation='nearest')
+        plt.tight_layout()
+        plt.show()
+    else:
+        print(result_graph)
 
 
-def example_multinomial():
+def example_multinomial(plot=True):
     # generate dataset with three stripes
     np.random.seed(4)
     x = np.zeros((10, 12, 3))
@@ -73,20 +76,26 @@ def example_multinomial():
 
     result_1d = np.argmax(simple_grid(unaries, pairwise_1d)[0], axis=-1)
 
-    plt.figure(figsize=(9, 3))
-    plt.suptitle("Multinomial distribution", size=20)
-    plt.subplot(141, title="original")
-    plt.imshow(x, interpolation="nearest")
-    plt.subplot(142, title="thresholded unaries")
-    plt.imshow(x_thresh, interpolation="nearest")
-    plt.subplot(143, title="potts potentials")
-    plt.imshow(result, interpolation="nearest")
-    plt.subplot(144, title="1d topology potentials")
-    plt.imshow(result_1d, interpolation="nearest")
-    plt.tight_layout()
-    plt.show()
+    if plot:
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(9, 3))
+        plt.suptitle("Multinomial distribution", size=20)
+        plt.subplot(141, title="original")
+        plt.imshow(x, interpolation="nearest")
+        plt.subplot(142, title="thresholded unaries")
+        plt.imshow(x_thresh, interpolation="nearest")
+        plt.subplot(143, title="potts potentials")
+        plt.imshow(result, interpolation="nearest")
+        plt.subplot(144, title="1d topology potentials")
+        plt.imshow(result_1d, interpolation="nearest")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print(result_1d)
 
 
 if __name__ == '__main__':
-    example_binary()
-    example_multinomial()
+    import os
+    plot = False if os.environ.get('NOPLOT') else True
+    example_binary(plot)
+    example_multinomial(plot)

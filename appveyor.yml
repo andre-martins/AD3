@@ -65,6 +65,7 @@ build: false
 test_script:
   # Change to a non-source folder to make sure we run the tests on the
   # installed library.
+  - "echo Running tests"
   - "mkdir empty_folder"
   - "cd empty_folder"
 
@@ -72,6 +73,11 @@ test_script:
 
   # Move back to the project folder
   - "cd .."
+
+  - "echo Running examples"
+  - "set NOPLOT=1"
+  - "cd examples\\python"
+  - "for %%i in (*.py) do (python %%i || exit 1)"
 
 artifacts:
   # Archive the generated wheel package in the ci.appveyor.com build report.

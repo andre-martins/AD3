@@ -5,7 +5,6 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from .. import factor_graph as fg
-from .. import solve
 
 
 def test_sequence_dense():
@@ -22,7 +21,7 @@ def test_sequence_dense():
         if ix is not None:
             var.set_log_potential(ix, 1)
 
-    value, marginals, additionals, status = solve(graph)
+    value, marginals, additionals, status = graph.solve()
     # 3 points for "observed" values, 3 points for consecutive equal vals
     assert value == 6
 

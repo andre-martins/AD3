@@ -1,10 +1,14 @@
+from __future__ import print_function
+import os
 import itertools
 from time import time
 import numpy as np
-import matplotlib.pyplot as plt
 
 import ad3.factor_graph as fg
-from ad3 import solve
+
+plot = False if os.environ.get('NOPLOT') else True
+if plot:
+    import matplotlib.pyplot as plt
 
 grid_size = 20
 num_states = 5
@@ -36,22 +40,24 @@ for i, j in itertools.product(range(grid_size), repeat=2):
         edge_variables = [multi_variables[i - 1][j], multi_variables[i][j]]
         factor_graph.create_factor_dense(edge_variables, potts_potentials)
 
-factor_graph.set_eta_ad3(.1)
-factor_graph.adapt_eta_ad3(True)
-factor_graph.set_max_iterations_ad3(1000)
 tic = time()
-value, marginals, edge_marginals, solver_status = \
-    factor_graph.solve_lp_map_ad3()
+value, marginals, edge_marginals, solver_status = factor_graph.solve()
 toc = time()
 
 res = np.array(marginals).reshape(grid_size, grid_size, num_states)
 
-plt.matshow(np.argmax(random_grid, axis=-1), vmin=0, vmax=4)
-plt.title("Unary potentials")
+unary = np.argmax(random_grid, axis=-1)
+out = np.argmax(res, axis=-1)
+if plot:
+    plt.matshow(unary, vmin=0, vmax=4)
+    plt.title("Unary potentials")
+    plt.matshow(out, vmin=0, vmax=4)
+    plt.title("Result of inference with dense factors ({:.2f}s)".format(
+                toc - tic))
+else:
+    print("unary potentials: \n", unary)
+    print("result with dense factors: \n", out)
 
-plt.matshow(np.argmax(res, axis=-1), vmin=0, vmax=4)
-plt.title("Result of inference with dense factors ({:.2f}s)".format(
-    toc - tic))
 
 use_sequence_factors = True
 
@@ -130,12 +136,17 @@ if use_sequence_factors:
         factors.append(factor)
 
     tic = time()
-    _, marginals, _, _ = solve(sequential_factor_graph)
+    _, marginals, _, _ = sequential_factor_graph.solve()
     toc = time()
 
     res = np.array(marginals).reshape(grid_size, grid_size, num_states)
-    plt.matshow(np.argmax(res, axis=-1), vmin=0, vmax=4)
-    plt.title("Results of inference with sequence factors ({:.2f}s)".format(
-        toc - tic))
+    res = np.argmax(res, axis=-1)
+    if plot:
+        plt.matshow(res, vmin=0, vmax=4)
+        plt.title("Results of inference with sequence factors ({:.2f}s)".format(
+            toc - tic))
+    else:
+        print("inference result with sequence:\n", res)
 
-plt.show()
+if plot:
+    plt.show()

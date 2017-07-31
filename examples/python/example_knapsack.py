@@ -1,7 +1,6 @@
 from __future__ import print_function
 import numpy as np
 import ad3.factor_graph as fg
-from ad3 import solve
 import time
 
 
@@ -35,12 +34,11 @@ def solve_lp_knapsack_ad3(scores, costs, budget):
         binary_variable.set_log_potential(scores[i])
         binary_variables.append(binary_variable)
 
-    negated = [False] * len(binary_variables)
-    factor_graph.create_factor_knapsack(binary_variables, negated, costs,
-                                        budget)
+    factor_graph.create_factor_knapsack(binary_variables, costs=costs,
+                                        budget=budget)
 
     # Run AD3.
-    _, posteriors, _, _ = solve(factor_graph)
+    _, posteriors, _, _ = factor_graph.solve()
     return posteriors
 
 
@@ -113,7 +111,5 @@ def solve_lp_knapsack_lpsolve(scores, costs, budget):
 
 
 if __name__ == "__main__":
-    n_tests = 100
     n = 100
-    for i in range(n_tests):
-        test_random_instance(n)
+    test_random_instance(n)

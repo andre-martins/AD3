@@ -4,34 +4,16 @@ import numpy as np
 from . import factor_graph as fg
 
 
-def solve(factor_graph, eta=0.1, adapt=True, max_iter=5000, verbose=False,
-          branch_and_bound=False):
-    factor_graph.set_eta_ad3(.1)
-    factor_graph.adapt_eta_ad3(True)
-    factor_graph.set_max_iterations_ad3(5000)
-    factor_graph.set_verbosity(verbose)
-
-    if branch_and_bound:
-        result = factor_graph.solve_exact_map_ad3()
-    else:
-        result = factor_graph.solve_lp_map_ad3()
-
-    value, marginals, edge_marginals, solver_status = result
-
-    solver_string = ["integral", "fractional", "infeasible", "unsolved"]
-    return value, marginals, edge_marginals, solver_string[solver_status]
-
-
 def simple_grid(unaries, pairwise, verbose=1):
     height, width, n_states = unaries.shape
 
-    factor_graph = fg.PFactorGraph()
+    graph = fg.PFactorGraph()
 
     multi_variables = []
     for i in range(height):
         multi_variables.append([])
         for j in range(width):
-            new_variable = factor_graph.create_multi_variable(n_states)
+            new_variable = graph.create_multi_variable(n_states)
             for state in range(n_states):
                 new_variable.set_log_potential(state, unaries[i, j, state])
             multi_variables[i].append(new_variable)
@@ -40,19 +22,18 @@ def simple_grid(unaries, pairwise, verbose=1):
         if j > 0:
             # horizontal edge
             edge_variables = [multi_variables[i][j - 1], multi_variables[i][j]]
-            factor_graph.create_factor_dense(edge_variables, pairwise.ravel())
+            graph.create_factor_dense(edge_variables, pairwise.ravel())
 
         if i > 0:
             # vertical edge
             edge_variables = [multi_variables[i - 1][j], multi_variables[i][j]]
-            factor_graph.create_factor_dense(edge_variables, pairwise.ravel())
+            graph.create_factor_dense(edge_variables, pairwise.ravel())
 
-    value, marginals, edge_marginals, solver_status = solve(factor_graph,
-                                                            verbose=verbose)
+    value, marginals, edge_marginals, status = graph.solve(verbose=verbose)
     marginals = np.array(marginals).reshape(unaries.shape)
     edge_marginals = np.array(edge_marginals).reshape(-1, n_states ** 2)
 
-    return marginals, edge_marginals, value, solver_status
+    return marginals, edge_marginals, value, status
 
 
 def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000,
@@ -82,8 +63,7 @@ def general_graph(unaries, edges, edge_weights, verbose=1, n_iterations=1000,
             factor_graph.create_factor_dense(edge_variables,
                                              edge_weights[i].ravel())
 
-    value, marginals, edge_marginals, solver_status = solve(
-        factor_graph,
+    value, marginals, edge_marginals, solver_status = factor_graph.solve(
         eta=eta,
         adapt=True,
         max_iter=n_iterations,
