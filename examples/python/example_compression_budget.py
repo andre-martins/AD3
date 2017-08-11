@@ -1,7 +1,8 @@
 from __future__ import print_function
 import numpy as np
 
-import ad3.factor_graph as fg
+from ad3 import PFactorGraph
+from ad3.extensions import PFactorSequence, PFactorCompressionBudget
 
 length = 30
 budget = 10
@@ -21,7 +22,7 @@ counts_for_budget = rng.uniform(size=length) < 0.1
 var_log_potentials = rng.randn(length)
 
 # 1) Build a factor graph using a SEQUENCE and a BUDGET factor.
-factor_graph = fg.PFactorGraph()
+factor_graph = PFactorGraph()
 multi_variables = []
 for i in range(length):
     multi_variable = factor_graph.create_multi_variable(2)
@@ -48,7 +49,7 @@ for i in range(length):
         variables.append(multi_variables[i].get_state(state))
     num_states.append(2)
 
-factor = fg.PFactorSequence()
+factor = PFactorSequence()
 factor_graph.declare_factor(factor, variables)
 
 factor.initialize(num_states)
@@ -71,7 +72,7 @@ best_states = np.array(posteriors).reshape(-1, 2).argmax(axis=1)
 print("Solution using SEQUENCE + BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a COMPRESSION_BUDGET factor.
-compression_factor_graph = fg.PFactorGraph()
+compression_factor_graph = PFactorGraph()
 
 variable_log_potentials = list(var_log_potentials)
 
@@ -104,7 +105,7 @@ for potential in variable_log_potentials:
     binary_variable.set_log_potential(potential)
     binary_variables.append(binary_variable)
 
-factor = fg.PFactorCompressionBudget()
+factor = PFactorCompressionBudget()
 
 variables = binary_variables
 compression_factor_graph.declare_factor(factor, variables)

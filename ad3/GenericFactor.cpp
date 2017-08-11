@@ -172,7 +172,7 @@ void GenericFactor::ComputeActiveSetSimilarities(
     (*similarities)[i*size + i] = static_cast<double>(
         CountCommonValues(active_set[i], active_set[i]));
     for (int j = i+1; j < active_set.size(); ++j) {
-      // Count how many variable values the i-th and j-th 
+      // Count how many variable values the i-th and j-th
       // assignments have in common.
       int num_common_values = CountCommonValues(active_set[i], active_set[j]);
       (*similarities)[i*size + j] = num_common_values;
@@ -209,7 +209,7 @@ void GenericFactor::EigenDecompose(vector<double> *similarities,
     }
   }
   es.compute(sim);
-  const Eigen::VectorXd &eigvals = es.eigenvalues(); 
+  const Eigen::VectorXd &eigvals = es.eigenvalues();
   eigenvalues->resize(size);
   for (int i = 0; i < size; ++i) {
     (*eigenvalues)[i] = eigvals[i];
@@ -225,7 +225,7 @@ void GenericFactor::EigenDecompose(vector<double> *similarities,
 #else
   lapack_int info;
   eigenvalues->resize(size);
-  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', 
+  info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U',
                        size,
                        &(*similarities)[0],
                        size,
@@ -272,7 +272,7 @@ void GenericFactor::Invert(const vector<double> &eigenvalues,
       d[k-1] += inverse_A_[j*size_A + k];
     }
   }
-    
+
   double invs = 1.0 / s;
   inverse_A_[0] = invs;
   for (int j = 1; j <= size; ++j) {
@@ -287,7 +287,7 @@ void GenericFactor::Invert(const vector<double> &eigenvalues,
 }
 
 // Checks if M'*M is singular.
-// If so, asserts that the null space is 1-dimensional 
+// If so, asserts that the null space is 1-dimensional
 // and returns a basis of the null space.
 bool GenericFactor::IsSingular(vector<double> &eigenvalues,
                         vector<double> &eigenvectors,
@@ -317,6 +317,7 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
                             const vector<double> &additional_log_potentials,
                             vector<double> *variable_posteriors,
                             vector<double> *additional_posteriors) {
+
   // Initialize the active set.
   if (active_set_.size() == 0) {
     variable_posteriors->resize(variable_log_potentials.size());
@@ -405,6 +406,9 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
       if (value <= tau + very_small_threshold) { // value <= tau.
         // We have found the solution;
         // the distribution, active set, and inv(A) are cached for the next round.
+        if (verbosity_ > 2) {
+            cout << "Converged." << endl;
+        }
         DeleteConfiguration(configuration);
         return;
       } else {
@@ -428,13 +432,15 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
 
             // Just in case, clean the cache.
             // This may prevent eventual numerical problems in the future.
-            for (int j = 0; j < active_set_.size(); ++j) {
-              if (j == k) continue; // This configuration was deleted already.
-              DeleteConfiguration(active_set_[j]);
+            if (clear_cache_) {
+              for (int j = 0; j < active_set_.size(); ++j) {
+                if (j == k) continue; // This configuration was deleted already.
+                DeleteConfiguration(active_set_[j]);
+              }
+              active_set_.clear();
+              inverse_A_.clear();
+              distribution_.clear();
             }
-            active_set_.clear();
-            inverse_A_.clear();
-            distribution_.clear();
 
             // Return.
             return;
@@ -459,7 +465,7 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
           // the eigendecomposition.
           vector<double> similarities(active_set_.size() * active_set_.size());
           ComputeActiveSetSimilarities(active_set_, &similarities);
-          vector<double> padded_similarities((active_set_.size()+2) * 
+          vector<double> padded_similarities((active_set_.size()+2) *
                                              (active_set_.size()+2), 1.0);
           for (int i = 0; i < active_set_.size(); ++i) {
             for (int j = 0; j < active_set_.size(); ++j) {
@@ -540,7 +546,7 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
         }
         active_set_.push_back(configuration);
         changed_active_set = true;
-      }      
+      }
     } else {
       // Solution has changed from the previous iteration.
       // Look for blocking constraints.
@@ -548,8 +554,7 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
       bool exist_blocking = false;
       double alpha = 1.0;
       for (int i = 0; i < active_set_.size(); ++i) {
-        assert(distribution_[i] >= -1e-12);
-        //if (z[i] >= distribution_[i] - 1e-12) continue;
+        assert(distribution_[i] >= -1e-12);  // Incorrect factors can make this fail.
         if (z[i] >= distribution_[i]) continue;
         if (z[i] < 0) exist_blocking = true;
         double tmp = distribution_[i] / (distribution_[i] - z[i]);
@@ -606,14 +611,57 @@ void GenericFactor::SolveQP(const vector<double> &variable_log_potentials,
     }
   }
 
+  if (verbosity_ > 2) {
+      cout << "Maximum number of iterations reached." << endl;
+  }
+
   // Maximum number of iterations reached.
-  // Return the best existing solution by computing the variable marginals 
+  // Return the best existing solution by computing the variable marginals
   // from the full distribution stored in z.
   //assert(false);
   ComputeMarginalsFromSparseDistribution(active_set_,
                                          z,
                                          variable_posteriors,
                                          additional_posteriors);
+}
+
+/* Get the correspondence between configurations & variable/additionals */
+void GenericFactor::GetCorrespondence(vector<double> *variable_m,
+                                      vector<double> *additional_m) {
+
+    int n_active = active_set_.size();
+    int n_vars = Degree();
+    int n_add = GetAdditionalLogPotentials().size();
+
+    /*
+    cout << "n_active=" << n_active << endl;
+    cout << "n_vars=" << n_vars << endl;
+    cout << "n_add=" << n_add << endl;
+    */
+
+    variable_m->reserve(n_vars * n_active);
+    additional_m->reserve(n_add * n_active);
+
+    vector<double> var_row(n_vars), add_row(n_add);
+
+    for(int i = 0; i < n_active; ++i) {
+
+        var_row.assign(n_vars, 0);
+        add_row.assign(n_add, 0);
+
+        UpdateMarginalsFromConfiguration(active_set_[i],
+                                         1.0,
+                                         &var_row,
+                                         &add_row);
+
+        variable_m->insert(variable_m->end(),
+                           var_row.begin(),
+                           var_row.end());
+
+        additional_m->insert(additional_m->end(),
+                             add_row.begin(),
+                             add_row.end());
+    }
 }
 
 }  // namespace AD3

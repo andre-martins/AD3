@@ -1,5 +1,5 @@
 import numpy as np
-from .. import factor_graph as fg
+from ad3 import factor_graph as fg
 
 
 def test_solve():

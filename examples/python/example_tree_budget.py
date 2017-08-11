@@ -1,8 +1,8 @@
 from __future__ import print_function
 import numpy as np
 
-import ad3.factor_graph as fg
-
+from ad3 import PFactorGraph
+from ad3.extensions import PFactorGeneralTree, PFactorGeneralTreeCounts
 
 def var_len_argmax(posteriors, num_states):
     t = 0
@@ -54,7 +54,7 @@ edge_log_potentials = [rng.randn(num_states[parents[i]] * num_states[i])
                        for i in range(1, num_nodes)]
 
 # 1) Build a factor graph using DENSE factors.
-pairwise_fg = fg.PFactorGraph()
+pairwise_fg = PFactorGraph()
 multi_variables = []
 for i in range(num_nodes):
     var = pairwise_fg.create_multi_variable(num_states[i])
@@ -131,7 +131,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     print("Solution using DENSE and BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a GENERAL_TREE factor.
-factor_graph = fg.PFactorGraph()
+factor_graph = PFactorGraph()
 
 flat_var_log_potentials = np.concatenate(var_log_potentials)
 
@@ -163,7 +163,7 @@ for i in range(len(flat_var_log_potentials)):
     binary_variables.append(binary_variable)
 
 if upper_bound >= 0 or lower_bound >= 0:
-    factor = fg.PFactorGeneralTreeCounts()
+    factor = PFactorGeneralTreeCounts()
 
     f = open('example_general_tree_counts.fg', 'w')
     f.write(str(len(binary_variables)) + '\n')
@@ -184,7 +184,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     f.close()
 
 else:
-    factor = fg.PFactorGeneralTree()
+    factor = PFactorGeneralTree()
 variables = binary_variables
 factor_graph.declare_factor(factor, variables, True)
 factor.initialize(parents, num_states)

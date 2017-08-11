@@ -33,6 +33,7 @@ class GenericFactor : public Factor {
   GenericFactor() {
     verbosity_ = 2;
     num_max_iterations_QP_ = 10;
+    clear_cache_ = true;
   }
 
   // Note: every class that derives from GenericFactor must
@@ -44,6 +45,16 @@ class GenericFactor : public Factor {
   virtual int type() { return FactorTypes::FACTOR_GENERIC; }
   bool IsGeneric() { return true; }
   void SetVerbosity(int verbosity) { verbosity_ = verbosity; }
+
+  /* Functions needed for gradient computation */
+  void SetQPMaxIter(int it) { num_max_iterations_QP_ = it; }
+  void SetClearCache(bool val) { clear_cache_ = val; }
+  vector<Configuration> GetQPActiveSet() const { return active_set_; }
+  vector<double> GetQPDistribution() const { return distribution_; }
+  vector<double> GetQPInvA() const { return inverse_A_; }
+
+  /* Get the correspondence between configurations & variable/additionals */
+  void GetCorrespondence(vector<double> *variable_m, vector<double> *additional_m);
 
  protected:
   void ClearActiveSet();
@@ -86,7 +97,7 @@ class GenericFactor : public Factor {
                   vector<double> &eigenvectors,
                   vector<double> *null_space_basis);
 
- protected:
+ public:
   // Compute the score of a given assignment.
   // This must be implemented in the user-defined factor.
   virtual void Evaluate(const vector<double> &variable_log_potentials,
@@ -126,7 +137,6 @@ class GenericFactor : public Factor {
   virtual void DeleteConfiguration(
     Configuration configuration) = 0;
 
- public:
   // Compute the MAP (local subproblem in the projected subgradient algorithm).
   // The user-defined factor may override this.
   virtual void SolveMAP(const vector<double> &variable_log_potentials,
@@ -149,7 +159,7 @@ class GenericFactor : public Factor {
   }
 
   // Solve the QP (local subproblem in the AD3 algorithm).
-  // By default, used the active set method. 
+  // By default, used the active set method.
   // The user-defined factor may override this.
   virtual void SolveQP(const vector<double> &variable_log_potentials,
                        const vector<double> &additional_log_potentials,
@@ -162,6 +172,8 @@ class GenericFactor : public Factor {
   vector<double> inverse_A_;
   int num_max_iterations_QP_; // Initialize to 10.
   int verbosity_; // Verbosity level.
+
+  bool clear_cache_;
 };
 
 } // namespace AD3

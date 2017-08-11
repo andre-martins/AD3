@@ -1,3 +1,5 @@
+include MANIFEST.in
 recursive-include ad3 *.h *.cpp
 recursive-include examples *.h *.cpp
 recursive-include Eigen *
+recursive-include python/ad3 *.cpp *.h *.pyx *.pxd

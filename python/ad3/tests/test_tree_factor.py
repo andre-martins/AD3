@@ -1,13 +1,14 @@
 import pytest
 import numpy as np
 
-from .. import factor_graph as fg
+from ad3 import PFactorGraph
+from ad3.extensions import PFactorTree
 
 
 def test_tree_factor():
     n_nodes = 10
     rng = np.random.RandomState(0)
-    g = fg.PFactorGraph()
+    g = PFactorGraph()
     arcs = [(h, m) for m in range(1, n_nodes) for h in range(n_nodes)
             if h != m]
     potentials = rng.uniform(0, 1, size=len(arcs))
@@ -16,7 +17,7 @@ def test_tree_factor():
     for var, potential in zip(arc_vars, potentials):
         var.set_log_potential(potential)
 
-    tree = fg.PFactorTree()
+    tree = PFactorTree()
     g.declare_factor(tree, arc_vars)
     tree.initialize(n_nodes, arcs)
 
@@ -35,13 +36,13 @@ def test_tree_factor():
 
 
 def test_tree_validate():
-    g = fg.PFactorGraph()
+    g = PFactorGraph()
     n_nodes = 4
     arcs = [(h, m) for m in range(1, n_nodes) for h in range(n_nodes)
             if h != m]
     arc_vars = [g.create_binary_variable() for _ in arcs]
 
-    tree = fg.PFactorTree()
+    tree = PFactorTree()
     g.declare_factor(tree, arc_vars)
 
     with pytest.raises(TypeError):

@@ -4,7 +4,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from .. import factor_graph as fg
+from ad3 import factor_graph as fg
 
 
 def test_sequence_dense():

@@ -1,7 +1,7 @@
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from .. import factor_graph as fg
+from ad3 import factor_graph as fg
 
 
 def test_knapsack_wrong_cost_size():

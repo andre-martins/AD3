@@ -1,5 +1,5 @@
 import pytest
-from .. import factor_graph as fg
+from ad3 import factor_graph as fg
 import numpy as np
 
 

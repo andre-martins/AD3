@@ -4,7 +4,8 @@ import itertools
 from time import time
 import numpy as np
 
-import ad3.factor_graph as fg
+from ad3 import PFactorGraph
+from ad3.extensions import PFactorSequence
 
 plot = False if os.environ.get('NOPLOT') else True
 if plot:
@@ -13,7 +14,7 @@ if plot:
 grid_size = 20
 num_states = 5
 
-factor_graph = fg.PFactorGraph()
+factor_graph = PFactorGraph()
 
 multi_variables = []
 random_grid = np.random.uniform(size=(grid_size, grid_size, num_states))
@@ -67,7 +68,7 @@ if use_sequence_factors:
     # Create a factor graph using sequence-factors which is equivalent to the
     # previous one.
 
-    sequential_factor_graph = fg.PFactorGraph()
+    sequential_factor_graph = PFactorGraph()
 
     # Create a binary variable for each state at each position in the grid.
     binary_variables = []
@@ -112,7 +113,7 @@ if use_sequence_factors:
         for j in range(grid_size):
             variables.extend(binary_variables[i][j])
             col_num_states.append(len(binary_variables[i][j]))
-        factor = fg.PFactorSequence()
+        factor = PFactorSequence()
         # Set True below to let the factor graph own the factor so that we
         # don't need to delete it.
         sequential_factor_graph.declare_factor(factor, variables, False)
@@ -127,7 +128,7 @@ if use_sequence_factors:
         for i in range(grid_size):
             variables.extend(binary_variables[i][j])
             col_num_states.append(len(binary_variables[i][j]))
-        factor = fg.PFactorSequence()
+        factor = PFactorSequence()
         # Set True below to let the factor graph own the factor so that we
         # don't need to delete it.
         sequential_factor_graph.declare_factor(factor, variables, False)

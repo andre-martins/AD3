@@ -71,7 +71,7 @@ class FactorTree : public GenericFactor {
     }
   }
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   // Note: additional_log_potentials is empty and is ignored.
   void UpdateMarginalsFromConfiguration(
@@ -144,7 +144,7 @@ class FactorTree : public GenericFactor {
                                  *candidate_scores,
                                  vector<int> *heads,
                                  double *value);
- private:
+ protected:
   int length_; // Sentence length (including root symbol).
   vector<vector<int> > index_arcs_;
 };

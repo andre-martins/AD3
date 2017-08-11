@@ -1,7 +1,8 @@
 from __future__ import print_function
 import numpy as np
 
-import ad3.factor_graph as fg
+from ad3 import PFactorGraph
+from ad3.extensions import PFactorBinaryTreeCounts
 
 rng = np.random.RandomState(1)
 
@@ -40,7 +41,7 @@ var_log_potentials = rng.randn(num_nodes)
 edge_log_potentials = rng.randn(num_nodes - 1, 4)
 
 # 1) Build a factor graph using DENSE factors.
-pairwise_fg = fg.PFactorGraph()
+pairwise_fg = PFactorGraph()
 multi_variables = []
 for i in range(num_nodes):
     multi_variable = pairwise_fg.create_multi_variable(2)
@@ -72,7 +73,7 @@ best_states = np.array(posteriors).reshape(-1, 2).argmax(axis=1)
 print("Solution using DENSE and BUDGET factors:", best_states)
 
 # 2) Build a factor graph using a BINARY_TREE factor.
-tree_fg = fg.PFactorGraph()
+tree_fg = PFactorGraph()
 
 variables = []
 for i in range(num_nodes):
@@ -85,7 +86,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     ix = np.arange(num_nodes + 1)
     additionals[ix < lower_bound] = -1000
     additionals[ix > upper_bound] = -1000
-    tree = fg.PFactorBinaryTreeCounts()
+    tree = PFactorBinaryTreeCounts()
     tree_fg.declare_factor(tree, variables, True)
     has_count_scores = [False for _ in parents]
     has_count_scores[0] = True
@@ -93,7 +94,7 @@ if upper_bound >= 0 or lower_bound >= 0:
     additionals = np.concatenate([edge_log_potentials.ravel(), additionals])
     tree.set_additional_log_potentials(additionals)
 else:
-    tree = fg.PFactorBinaryTree()
+    tree = PFactorBinaryTree()
     tree_fg.declare_factor(tree, variables, True)
     tree.initialize(parents)
     tree.set_additional_log_potentials(edge_log_potentials.ravel())
