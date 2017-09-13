@@ -1,11 +1,11 @@
 
 # AD3+
 
-This project is a fork from André Martins's project [AD3](https://github.com/andre-martins/AD3).
+This project is a fork from AndrÃ© Martins's project [AD3](https://github.com/andre-martins/AD3).
 
 We extend here the __Python API to AD3__ to support:
-- supporting hard-logic constraints in inference methods
-- supporting inference on graph where nodes have different natures
+- hard-logic constraints in inference methods
+- inference on graph where nodes have different natures
 
 We did those extensions in order to extend the pystruct structured learning library. See [Pystruct+](https://github.com/jlmeunier/pystruct)
 
@@ -13,12 +13,17 @@ We did those extensions in order to extend the pystruct structured learning libr
 
 
 ## Hard Logic Constraints
-As explained in André's ICML paper [1], one can **binarize the graph** and make inference on boolean values.
+As explained in AndrÃ©'s ICML paper [1], one can **binarize the graph** and make inference on boolean values.
 Exploiting this method, we support logical constraints when doing inference.
 
-[1] André F. T. Martins, Mário A. T. Figueiredo, Pedro M. Q. Aguiar, Noah A. Smith, and Eric P. Xing.
+[1] AndrÃ© F. T. Martins, Mï¿½rio A. T. Figueiredo, Pedro M. Q. Aguiar, Noah A. Smith, and Eric P. Xing.
 "An Augmented Lagrangian Approach to Constrained MAP Inference."
 International Conference on Machine Learning (ICML'11), Bellevue, Washington, USA, June 2011.
+
+See also 
+[2] Jean-Luc Meunier, "Joint Structured Learning and Predictions under Logical Constraints in Conditional Random Fields"
+Conference CAp 2017
+ arXiv:1708.07644
 
 ## Nodes of Different Nature
 When the nodes of the graph are of different nature, their number of possible states may differ from each other. Provided the definition of the number of states per **type of node** , the inference method deals gracefully with this situation.
@@ -41,6 +46,10 @@ See [AD3](https://github.com/andre-martins/AD3) documentation and/or [pystruct+]
 
 
 ## Change Log
+
+### Release 2.2.1
+
+- same code based on most recent version of AD3 "2.2.dev0" by vene 
 
 ### Release 2.1.2 
 
