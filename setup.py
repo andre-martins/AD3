@@ -1,19 +1,18 @@
-#from setuptools import setup
-#from setuptools.command.bdist_egg import bdist_egg
-#from setuptools.extension import Extension
-from distutils.command.build_clib import build_clib
-from distutils.core import setup
-from distutils.extension import Extension
-from Cython.Distutils import build_ext
+import sys
+from setuptools import setup
+from setuptools.command.bdist_egg import bdist_egg
+from setuptools.extension import Extension
 
 libad3 = ('ad3', {
     'sources': ['ad3/FactorGraph.cpp',
                 'ad3/GenericFactor.cpp',
                 'ad3/Factor.cpp',
-                'ad3/Utils.cpp'],
+                'ad3/Utils.cpp',
+                'examples/cpp/parsing/FactorTree.cpp'],
     'include_dirs': ['.',
                      './ad3',
-                     './Eigen'
+                     './Eigen',
+                     './examples/cpp/parsing'
                      ],
     'extra_compile_args': [
         '-Wno-sign-compare',
@@ -29,25 +28,34 @@ libad3 = ('ad3', {
 # install_lib doesn't call build_clib
 
 
-#class bdist_egg_fix(bdist_egg):
-#    def run(self):
-#        self.call_command('build_clib')
-#        bdist_egg.run(self)
+class bdist_egg_fix(bdist_egg):
+    def run(self):
+        self.call_command('build_clib')
+        bdist_egg.run(self)
+
+
+WHEELHOUSE_UPLOADER_COMMANDS = set(['fetch_artifacts', 'upload_all'])
+
+cmdclass = {'bdist_egg': bdist_egg_fix}
+
+if WHEELHOUSE_UPLOADER_COMMANDS.intersection(sys.argv):
+
+    import wheelhouse_uploader.cmd
+    cmdclass.update(vars(wheelhouse_uploader.cmd))
 
 
 setup(name='ad3',
-      version="2.1.2",
-      author="Andre Martins, Jean-Luc Meunier",
+      version="2.2.dev0",
+      author="Andre Martins",
       description='Alternating Directions Dual Decomposition',
       url="http://www.ark.cs.cmu.edu/AD3",
       author_email="afm@cs.cmu.edu",
-      package_dir={'ad3': 'python/ad3'},
-      packages=['ad3'],
+      package_dir={'ad3': 'python', 'ad3/tests': 'python/tests'},
+      packages=['ad3', 'ad3/tests'],
       libraries=[libad3],
-      #cmdclass={'build_ext': build_ext, 'bdist_egg': bdist_egg_fix},
-      cmdclass={'build_ext': build_ext},
+      cmdclass=cmdclass,
       ext_modules=[Extension("ad3.factor_graph",
-                             ["python/factor_graph.pyx"],
-                             include_dirs=["ad3", "./"],
+                             ["python/factor_graph.cpp"],
+                             include_dirs=[".", "ad3"],
                              language="c++",
                              )])

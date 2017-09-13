@@ -1,2 +1,3 @@
 recursive-include ad3 *.h *.cpp
+recursive-include examples *.h *.cpp
 recursive-include Eigen *

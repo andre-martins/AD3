@@ -1,7 +1,7 @@
-EXAMPLE_DENSE = examples/dense
-EXAMPLE_PARSING = examples/parsing
-EXAMPLE_LOGIC = examples/logic
-EXAMPLE_SUMMARIZATION = examples/summarization
+EXAMPLE_DENSE = examples/cpp/dense
+EXAMPLE_PARSING = examples/cpp/parsing
+EXAMPLE_LOGIC = examples/cpp/logic
+EXAMPLE_SUMMARIZATION = examples/cpp/summarization
 AD3 = ad3
 OBJS = FactorTree.o
 CC = g++
