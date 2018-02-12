@@ -1,3 +1,10 @@
+
+*********************************************************
+** Merged into official AD3 lib !                      **
+** So please use https://github.com/andre-martins/AD3  **
+** Feb 12th, 2018                                      **
+*********************************************************
+
 AD3 (approximate MAP decoder with Alternating Direction Dual Decomposition)
 Copyright (C) 2012
 Andre Martins
