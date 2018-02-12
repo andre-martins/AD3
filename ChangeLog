@@ -1,3 +1,11 @@
+wip AD3 2.2.dev0
+  * Added 2 capabilities to the Python wrapper:
+    - handling logic constraints
+    - handling multiple types of nodes (the node type defines the list of possible states of the node)
+    - handling both multi-type and constraints
+    Added the corresponding unit tests.
+    by Jean-Luc Meunier  (jean-luc.meunier@naverlabs.com).
+  
 2017-07-31 AD3 2.1.0 vlad@vene.ro
   Added some functionality and robustness to the Python wrapper:
   * Factor graphs now have verbosity=0 by default (in CPP as well.)
