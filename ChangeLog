@@ -5,6 +5,15 @@ wip AD3 2.2.dev0
     - handling both multi-type and constraints
     Added the corresponding unit tests.
     by Jean-Luc Meunier  (jean-luc.meunier@naverlabs.com).
+
+  * Refactoring and better importing for the Python wrapper:
+    - It is now possible to build custom factors in user libraries and wrap
+	them, without modifying AD3 itself.
+
+  * Exposing more functionality and settings:
+    - Exposed the underlying quadratic problem solvers to Python.
+	- Allow access to intermediate results of the QP solvers.
+	- Allow users to disable auto-clearing the QP solver cache.
   
 2017-07-31 AD3 2.1.0 vlad@vene.ro
   Added some functionality and robustness to the Python wrapper:

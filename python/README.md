@@ -1,7 +1,21 @@
 Python bindings for AD3
 =======================
 
-Author: Andreas Mueller <amueller@ais.uni-bonn.de>
+Authors: 
+    Andreas Mueller <amueller@ais.uni-bonn.de>
+    Vlad Niculae <vlad@vene.ro>
+    Jean-Luc Meunier <jean-luc.meunier@naverlabs.com>
+
+
+Installation Instructions
+-------------------------
+
+The wrapper is available on PyPI. Wheels are distributed for most platforms.
+
+```bash
+pip install ad3
+```
+
 
 Build Instructions
 ------------------
@@ -9,7 +23,7 @@ The Python bindings require Cython.
 To build the Python bindings use the following commands at the top level:
 
 ```bash
-python setup.py install
+pip install .
 ```
 
 to install the bindings systemwide
@@ -18,14 +32,10 @@ or
 
 
 ```bash
-python setup.py build_clib
-python setup.py build_ext -i
+pip install -e .
 ```
 
-to install them in AD3/python/ad3 directory
-
-
-See ``example_grid.py`` or the notebook for an example.
+to install them locally.
 
 
 # Support for logic constraints and typed nodes
