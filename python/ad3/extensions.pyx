@@ -7,7 +7,7 @@ from base cimport Factor
 from base cimport BinaryVariable
 from base cimport MultiVariable
 from base cimport FactorGraph
-from base cimport PBinaryVariable, PMultiVariable, PFactor
+from base cimport PBinaryVariable, PMultiVariable, PFactor, PGenericFactor
 
 
 cdef extern from "../examples/cpp/dense/FactorSequence.h" namespace "AD3":

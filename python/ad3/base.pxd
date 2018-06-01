@@ -136,3 +136,6 @@ cdef class PFactor:
     cdef Factor* thisptr
     cdef bool allocate
 
+
+cdef class PGenericFactor(PFactor):
+    cdef _cast_configuration(self, Configuration)
