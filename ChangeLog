@@ -1,4 +1,4 @@
-wip AD3 2.2.dev0
+AD3 2.2rc1
   * Added 2 capabilities to the Python wrapper:
     - handling logic constraints
     - handling multiple types of nodes (the node type defines the list of possible states of the node)
