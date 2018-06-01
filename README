@@ -21,8 +21,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-This is a README for AD3 v2.1
-=================================
+This is a README for AD3 v2.3dev 
+================================
 
 AD3 (Alternating Directions Dual Decomposition) is an LP-MAP decoder for
 undirected constrained factor graphs. In other words, it is an approximate MAP
