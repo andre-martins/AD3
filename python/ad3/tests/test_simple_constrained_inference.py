@@ -6,7 +6,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
 
-from ..simple_constrained_inference import (
+from ad3.simple_constrained_inference import (
     general_constrained_graph_singletype,
     general_constrained_graph_multitype)
 

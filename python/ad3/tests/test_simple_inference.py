@@ -1,11 +1,10 @@
 # Author: Jean-Luc Meunier, 30 Jan 2017
 
-
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_almost_equal, assert_equal)
 
-from ..simple_inference import general_graph
+from ad3 import general_graph
 
 def test_general_graph():
     unaries = np.array([[10, 11, 0 ],
@@ -17,8 +16,8 @@ def test_general_graph():
     ret = general_graph(unaries, edges, edge_weights, verbose=1, exact=False)
     marginals, edge_marginals, value, solver_status = ret
     assert (marginals == np.array([[ 0.,  1.,  0.],
-                                  [ 0.,  0.,  1.]])).all()
-    assert (edge_marginals == np.array([[ 0.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.]])).all()
+                                   [ 0.,  0.,  1.]])).all()
+    assert (edge_marginals == np.array([[0, 0, 0, 0, 0, 1, 0, 0, 0]])).all()
     assert solver_status == 'integral'
 
 def test_general_graph_multitype():
