@@ -1,4 +1,4 @@
-__version__ = '2.2rc1'
+__version__ = '2.2'
 
 from .base import PBinaryVariable, PMultiVariable
 from .factor_graph import PFactorGraph

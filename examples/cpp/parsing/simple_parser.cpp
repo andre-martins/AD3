@@ -1,7 +1,7 @@
 // Copyright (c) 2012 Andre Martins
 // All Rights Reserved.
 //
-// This file is part of AD3 2.1.
+// This file is part of AD3 2.2.
 //
 // AD3 2.1 is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by

@@ -1,4 +1,4 @@
-AD3 2.2rc1
+2017-06-20 AD3 2.2.0 vlad@vene.ro
   * Added 2 capabilities to the Python wrapper:
     - handling logic constraints
     - handling multiple types of nodes (the node type defines the list of possible states of the node)
