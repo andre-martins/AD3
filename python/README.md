@@ -37,6 +37,13 @@ pip install -e .
 
 to install them locally.
 
+To update the bindings you can run:
+
+```bash
+pip install cython
+cd python/ad3
+cython *.pyx --cplus
+```
 
 # Support for logic constraints and typed nodes
 
