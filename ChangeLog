@@ -1,3 +1,6 @@
+2018-09-26 AD3 2.2.1 vlad@vene.ro
+  * Support for python 3.7
+
 2017-06-20 AD3 2.2.0 vlad@vene.ro
   * Added 2 capabilities to the Python wrapper:
     - handling logic constraints

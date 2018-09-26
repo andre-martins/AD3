@@ -47,7 +47,7 @@ if WHEELHOUSE_UPLOADER_COMMANDS.intersection(sys.argv):
 
 
 setup(name='ad3',
-      version="2.2",
+      version="2.2.1",
       author="Andre Martins",
       description='Alternating Directions Dual Decomposition',
       url="http://www.ark.cs.cmu.edu/AD3",

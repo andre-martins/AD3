@@ -21,8 +21,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-This is a README for AD3 v2.2
-=============================
+This is a README for AD3 v2.2.1
+===============================
 
 AD3 (Alternating Directions Dual Decomposition) is an LP-MAP decoder for
 undirected constrained factor graphs. In other words, it is an approximate MAP
@@ -482,3 +482,4 @@ If you find any bugs or have questions, please email André Martins (afm@cs.cmu.
 2.0 - Second public release (2012-09-08)
 2.1 - Incremental release for Python wrapper functionality (2017-07-31)
 2.2 - Incremental release: constrained inference and Cython extensions (2017-06-20)
+2.2.1 - Python 3.7 support (2018-09-26)
