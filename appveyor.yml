@@ -8,25 +8,20 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci_scripts\\appveyor\\run_with_env.cmd"
 
   matrix:
-    - PYTHON_VERSION: "2.7.13"
-      PYTHON_ARCH: "32"
-      MINICONDA: "C:\\Miniconda"
+      - PYTHON: "C:\\Python37-x64"
+        PYTHON_VERSION: "3.7.0"
+        PYTHON_ARCH: "64"
 
-    - PYTHON_VERSION: "2.7.13"
-      PYTHON_ARCH: "64"
-      MINICONDA: "C:\\Miniconda-x64"
+      - PYTHON: "C:\\Python27-x64"
+        PYTHON_VERSION: "2.7.8"
+        PYTHON_ARCH: "32"
 
-    - PYTHON_VERSION: "3.6.0"
-      PYTHON_ARCH: "32"
-      MINICONDA: "C:\\Miniconda36"
-
-    - PYTHON_VERSION: "3.6.0"
-      PYTHON_ARCH: "64"
-      MINICONDA: "C:\\Miniconda36-x64"
+matrix:
+    fast_finish: true
 
 install:
-  # Miniconda is pre-installed in the worker build
-  - "SET PATH=%MINICONDA%;%MINICONDA%\\Scripts;%PATH%"
+  - "powershell ./ci_scripts/appveyor/install.ps1"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python -m pip install -U pip"
 
   # Check that we have the expected version and architecture for Python
@@ -34,17 +29,7 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
   - "pip --version"
 
-  # Remove cygwin because it clashes with conda
-  # see http://help.appveyor.com/discussions/problems/3712-git-remote-https-seems-to-be-broken
-  - rmdir C:\\cygwin /s /q
-
-  # Update previous packages and install the build and runtime dependencies of the project.
-  # XXX: setuptools>23 is currently broken on Win+py3 with numpy
-  # (https://github.com/pypa/setuptools/issues/728)
-  - conda install --quiet --yes numpy pytest wheel"
-  # there seems to be a problem with conda-build 1.21.0 on python27 and win64, avoid this
-  # by using a previous version
-  # - conda install --quiet --yes conda-build=1.21.0
+  - "%CMD_IN_ENV% pip install --timeout=60 numpy pytest wheel"
   - "%CMD_IN_ENV% python setup.py bdist_wheel bdist_wininst"
 
   - ps: "ls dist"
@@ -82,3 +67,6 @@ test_script:
 artifacts:
   # Archive the generated wheel package in the ci.appveyor.com build report.
   - path: dist\*
+
+cache:
+  - '%APPDATA%\pip\Cache'
