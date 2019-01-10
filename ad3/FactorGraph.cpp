@@ -77,19 +77,18 @@ void FactorGraph::ConvertToBinaryFactorGraph(FactorGraph *binary_factor_graph) {
           binary_factor_graph->CreateBinaryVariable();
         extra_variables[index]->
           SetLogPotential(factor_dense->GetAdditionalLogPotentials()[index]);
-      }      
+      }
 
       // Create XOR-with-output factors imposing marginalization constraints.
       vector<int> states(factor_dense->GetNumMultiVariables());
-      vector<vector<BinaryVariable*> > 
+      vector<vector<BinaryVariable*> >
         binary_variables_array(factor_dense->Degree());
-      for (int index = 0; 
+      for (int index = 0;
            index < factor_dense->GetNumConfigurations();
            ++index) {
         factor_dense->GetConfigurationStates(index, &states);
         for (int j = 0; j < factor_dense->GetNumMultiVariables(); ++j) {
-          MultiVariable *multi_variable = factor_dense->GetMultiVariable(j);
-          int variable_index = 
+          int variable_index =
             factor_dense->GetVariableIndex(j, states[j]);
           binary_variables_array[variable_index].
             push_back(extra_variables[index]);
@@ -771,7 +770,6 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   vector<double> posteriors_zero;
   vector<double> additional_posteriors_zero;
   double value_zero;
-  double upper_bound_zero;
   double score = variables_[variable_to_branch]->GetLogPotential();
   variables_[variable_to_branch]->SetLogPotential(score - infinite_potential);
   int status_zero = RunBranchAndBound(cumulative_value,
@@ -794,7 +792,6 @@ int FactorGraph::RunBranchAndBound(double cumulative_value,
   vector<double> posteriors_one;
   vector<double> additional_posteriors_one;
   double value_one;
-  double upper_bound_one;
   score = variables_[variable_to_branch]->GetLogPotential();
   variables_[variable_to_branch]->SetLogPotential(score + infinite_potential);
   int status_one = RunBranchAndBound(cumulative_value + infinite_potential,

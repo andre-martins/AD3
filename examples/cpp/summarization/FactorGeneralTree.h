@@ -151,7 +151,6 @@ class FactorGeneralTree : public GenericFactor {
                        const vector<int> &configuration,
                        int i,
                        double *value) {
-    int num_states = GetNumStates(i);
     int k = configuration[i];
 
     if (IsLeaf(i)) {
@@ -183,11 +182,10 @@ class FactorGeneralTree : public GenericFactor {
                               int i,
                               vector<double> *variable_posteriors,
                               vector<double> *additional_posteriors) {
-    int num_states = GetNumStates(i);
     int k = configuration[i];
 
     if (IsLeaf(i)) {
-      AddNodePosterior(i, k, weight, 
+      AddNodePosterior(i, k, weight,
                        variable_posteriors,
                        additional_posteriors);
       //AddEdgePosterior(-1, 0, k, weight,

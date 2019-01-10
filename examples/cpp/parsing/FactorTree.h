@@ -41,9 +41,9 @@ class FactorTree : public GenericFactor {
   FactorTree() {}
   virtual ~FactorTree() { ClearActiveSet(); }
 
-  int RunCLE(const vector<double>& scores,
-             vector<int> *heads,
-             double *value);
+  void RunCLE(const vector<double>& scores,
+              vector<int> *heads,
+              double *value);
 
   // Compute the score of a given assignment.
   // Note: additional_log_potentials is empty and is ignored.

@@ -174,19 +174,19 @@ class FactorDense : public GenericFactor {
       variable_offsets_[i] = variable_offsets_[i-1] +
         multi_variables_[i]->GetNumStates();
     }
-  }  
+  }
 
   int GetNumMultiVariables() { return multi_variables_.size(); }
   MultiVariable *GetMultiVariable(int i) { return multi_variables_[i]; }
-  
+
   int GetNumConfigurations() {
     int  num_configurations = 1;
     for (int i = 0; i < multi_variables_.size(); ++i) {
       num_configurations *= multi_variables_[i]->GetNumStates();
     }
-    return num_configurations;    
+    return num_configurations;
   }
- 
+
   // Find the configuration index given the array of states.
   int GetConfigurationIndex(const vector<int>& states) {
     int index = states[0];

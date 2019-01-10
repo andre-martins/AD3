@@ -242,7 +242,7 @@ int project_onto_budget_constraint_cached(double* x,
 
   k = l = level = 0;
   bool found = false;
-  double val_a;
+  double val_a = (d > 0) ? y[0].first : 0.0;
   double val_b;
   while (k < d || l < d) {
     if (level != 0) {
@@ -304,10 +304,11 @@ int project_onto_budget_constraint(double* x, int d, double budget) {
   sort(y.begin(), y.end());
   tightsum = s;
   s += budget;
-  
+
   k = l = level = 0;
   bool found = false;
-  double val_a, val_b;
+  double val_a = (d > 0) ? y[0] : 0.0;
+  double val_b;
   while (k < d || l < d) {
     if (level != 0) {
       tau = (s - tightsum) / static_cast<double>(level);
@@ -457,7 +458,7 @@ int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
   double left, right = -std::numeric_limits<double>::infinity();
   bool found = false;
   double tau;
-  int index_a, index_b;
+  int index_a = 0, index_b = 0;
   double val_a, val_b;
 
   while (k < d || l < d) {

@@ -210,7 +210,6 @@ class FactorBinaryTree : public FactorGeneralTree {
     int index = 0;
     // Root does not have incoming edges.
     for (int i = 1; i < length; ++i) {
-      int p = parents_[i];
       int num_previous_states = 2;
       int num_current_states = 2;
       index_edges_[i].resize(num_current_states);

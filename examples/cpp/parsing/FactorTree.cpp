@@ -34,9 +34,9 @@ namespace AD3 {
 
 // Decoder for the basic model; it finds a maximum weighted arborescence
 // using Chu-Liu-Edmonds' algorithm.
-int FactorTree::RunCLE(const vector<double>& scores,
-                       vector<int> *heads,
-                       double *value) {
+void FactorTree::RunCLE(const vector<double>& scores,
+                        vector<int> *heads,
+                        double *value) {
 
 
   // Done once.

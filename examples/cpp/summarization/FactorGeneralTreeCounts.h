@@ -467,7 +467,6 @@ class FactorGeneralTreeCounts : public GenericFactor {
                        int i,
                        int *count,
                        double *value) {
-    int num_states = GetNumStates(i);
     int k = configuration[i];
     if (CountsForBudget(i, k)) ++(*count);
 
@@ -507,7 +506,6 @@ class FactorGeneralTreeCounts : public GenericFactor {
                               int *count,
                               vector<double> *variable_posteriors,
                               vector<double> *additional_posteriors) {
-    int num_states = GetNumStates(i);
     int k = configuration[i];
     if (CountsForBudget(i, k)) ++(*count);
 
