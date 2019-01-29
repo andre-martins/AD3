@@ -19,6 +19,7 @@
 #ifndef FACTOR_SEQUENCE
 #define FACTOR_SEQUENCE
 
+#include <limits>
 #include "ad3/GenericFactor.h"
 
 namespace AD3 {
@@ -94,7 +95,7 @@ class FactorSequence : public GenericFactor {
       values[i + 1].resize(num_states);
       path[i + 1].resize(num_states);
       for (int k = 0; k < num_states; ++k) {
-        double best_value;
+        double best_value = -std::numeric_limits<double>::infinity();
         int best = -1;
         for (int l = 0; l < num_states_[i]; ++l) {
           double val = values[i][l] +
@@ -113,7 +114,7 @@ class FactorSequence : public GenericFactor {
     }
 
     // Termination.
-    double best_value;
+    double best_value = -std::numeric_limits<double>::infinity();
     int best = -1;
     for (int l = 0; l < num_states_[length - 1]; ++l) {
       double val = values[length - 1][l] +

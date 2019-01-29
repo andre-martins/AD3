@@ -30,34 +30,34 @@
 #else
   #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
 #endif
- 
-struct timezone 
+
+struct timezone
 {
   int  tz_minuteswest; /* minutes W of Greenwich */
   int  tz_dsttime;     /* type of dst correction */
 };
- 
+
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
   FILETIME ft;
   unsigned __int64 tmpres = 0;
   static int tzflag;
- 
+
   if (NULL != tv)
   {
     GetSystemTimeAsFileTime(&ft);
- 
+
     tmpres |= ft.dwHighDateTime;
     tmpres <<= 32;
     tmpres |= ft.dwLowDateTime;
- 
+
     /*converting file time to unix epoch*/
-    tmpres -= DELTA_EPOCH_IN_MICROSECS; 
+    tmpres -= DELTA_EPOCH_IN_MICROSECS;
     tmpres /= 10;  /*convert into microseconds*/
     tv->tv_sec = (long)(tmpres / 1000000UL);
     tv->tv_usec = (long)(tmpres % 1000000UL);
   }
- 
+
   if (NULL != tz)
   {
     if (!tzflag)
@@ -68,7 +68,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
     tz->tz_minuteswest = _timezone / 60;
     tz->tz_dsttime = _daylight;
   }
- 
+
   return 0;
 }
 #endif
@@ -102,7 +102,7 @@ void InsertionSort(pair<double, int> arr[], int length) {
 
 int project_onto_simplex_cached(double* x,
 				int d,
-				double r, 
+				double r,
 				vector<pair<double,int> >& y) {
   int j;
   double s = 0.0;
@@ -122,7 +122,7 @@ int project_onto_simplex_cached(double* x,
       s += x[j];
       y[j].first = x[y[j].second];
     }
-    // If reordering is cached, use a sorting algorithm 
+    // If reordering is cached, use a sorting algorithm
     // which is fast when the vector is almost sorted.
     InsertionSort(&y[0], d);
   }
@@ -169,7 +169,7 @@ int project_onto_simplex(double* x, int d, double r) {
       x[j] -= tau;
     }
   }
-   
+
  return 0;
 }
 
@@ -211,7 +211,7 @@ int project_onto_cone_cached(double* x, int d,
 
 int project_onto_budget_constraint_cached(double* x,
                                           int d,
-                                          double budget, 
+                                          double budget,
                                           vector<pair<double,int> >& y) {
   int j, k, l, level;
   double s = 0.0;
@@ -232,7 +232,7 @@ int project_onto_budget_constraint_cached(double* x,
       s -= x[j];
       y[j].first = -x[y[j].second];
     }
-    // If reordering is cached, use a sorting algorithm 
+    // If reordering is cached, use a sorting algorithm
     // which is fast when the vector is almost sorted.
     InsertionSort(&y[0], d);
   }
@@ -341,7 +341,7 @@ int project_onto_budget_constraint(double* x, int d, double budget) {
     left = right;
     right = std::numeric_limits<double>::infinity();
   }
-      
+
   for (j = 0; j < d; j++) {
     if (-x[j] >= right) {
       x[j] = 0.0;
@@ -457,7 +457,7 @@ int solve_canonical_qp_knapsack(const vector<double> &lower_bounds,
   int level = 0;
   double left, right = -std::numeric_limits<double>::infinity();
   bool found = false;
-  double tau;
+  double tau = 0;  // initial value does not matter
   int index_a = 0, index_b = 0;
   double val_a, val_b;
 

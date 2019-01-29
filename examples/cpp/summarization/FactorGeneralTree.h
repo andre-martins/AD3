@@ -85,7 +85,7 @@ class FactorGeneralTree : public GenericFactor {
           GetNodeScore(i, l, variable_log_potentials,
                        additional_log_potentials);
         //GetEdgeScore(i, 0, l, variable_log_potentials,
-        //               additional_log_potentials); 
+        //               additional_log_potentials);
       }
     } else {
       // Initialize values to the node scores.
@@ -101,12 +101,12 @@ class FactorGeneralTree : public GenericFactor {
                           j, values, path);
         (*path)[j].resize(num_states);
         for (int k = 0; k < num_states; ++k) {
-          double best_value;
+          double best_value = -std::numeric_limits<double>::infinity();
           int best = -1;
           for (int l = 0; l < GetNumStates(j); ++l) {
-            double val = (*values)[j][l] + 
+            double val = (*values)[j][l] +
               GetEdgeScore(j, l, k, variable_log_potentials,
-                           additional_log_potentials); 
+                           additional_log_potentials);
             if (best < 0 || val > best_value) {
               best_value = val;
               best = l;
@@ -120,12 +120,12 @@ class FactorGeneralTree : public GenericFactor {
 
     if (IsRoot(i)) {
       (*path)[i].resize(1);
-      double best_value;
+      double best_value = -std::numeric_limits<double>::infinity();
       int best = -1;
       for (int l = 0; l < num_states; ++l) {
-        double val = (*values)[i][l]; 
+        double val = (*values)[i][l];
           //+ GetEdgeScore(i, l, 0, variable_log_potentials,
-          //               additional_log_potentials); 
+          //               additional_log_potentials);
         if (best < 0 || val > best_value) {
           best_value = val;
           best = l;
@@ -158,7 +158,7 @@ class FactorGeneralTree : public GenericFactor {
         GetNodeScore(i, k, variable_log_potentials,
                      additional_log_potentials); //+
       //GetEdgeScore(i, 0, k, variable_log_potentials,
-      //               additional_log_potentials); 
+      //               additional_log_potentials);
     } else {
       *value += GetNodeScore(i, k, variable_log_potentials,
                              additional_log_potentials);
@@ -209,7 +209,7 @@ class FactorGeneralTree : public GenericFactor {
       }
     }
   }
-  
+
  public:
   // Obtain the best configuration.
   virtual void Maximize(const vector<double> &variable_log_potentials,
@@ -251,7 +251,7 @@ class FactorGeneralTree : public GenericFactor {
                     value);
   }
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   virtual void UpdateMarginalsFromConfiguration(
       const Configuration &configuration,
@@ -306,7 +306,7 @@ class FactorGeneralTree : public GenericFactor {
   virtual Configuration CreateConfiguration() {
     int length = num_states_.size();
     vector<int>* sequence = new vector<int>(length, -1);
-    return static_cast<Configuration>(sequence); 
+    return static_cast<Configuration>(sequence);
   }
 
  public:
@@ -328,8 +328,8 @@ class FactorGeneralTree : public GenericFactor {
     }
 
     num_states_ = num_states;
-    
-    index_edges_.resize(length); 
+
+    index_edges_.resize(length);
     offset_states_.resize(length);
     int offset = 0;
     for (int i = 0; i < length; ++i) {
@@ -364,9 +364,9 @@ class FactorGeneralTree : public GenericFactor {
   vector<int> num_states_;
   // Offset of states for each position.
   vector<int> offset_states_;
-  // At each position, map from edges of states to a global index which 
+  // At each position, map from edges of states to a global index which
   // matches the index of additional_log_potentials_.
-  vector<vector<vector<int> > > index_edges_; 
+  vector<vector<vector<int> > > index_edges_;
 };
 
 } // namespace AD3

@@ -302,7 +302,7 @@ class FactorCompressionBudget : public GenericFactor {
         if (ExistsBigramVariable(k-1)) {
           if (k == 0) {
             ++count; // start position.
-          } else if (i > 0 && j > 0 && 
+          } else if (i > 0 && j > 0 &&
                      (*selected_nodes1)[i-1] == k-1 &&
                      (*selected_nodes2)[j-1] == k-1) {
             ++count;
@@ -341,7 +341,7 @@ class FactorCompressionBudget : public GenericFactor {
 
  public:
   // num_states contains the number of states at each position
-  // in the sequence. 
+  // in the sequence.
   // Note: the variables and the the additional log-potentials must be ordered
   // properly.
   // "length" is the length of the sequence. The start and stop positions are not considered here.
@@ -349,10 +349,10 @@ class FactorCompressionBudget : public GenericFactor {
   // (excluding the ones that do not count to the budget).
   // "count_to_budget" is a boolean vector of length "length" which
   // tells for each element if it counts to the budget.
-  // "bigram_positions" is a vector containing the positions where 
+  // "bigram_positions" is a vector containing the positions where
   // bigrams start (each bigram in this vector will have a score
   // in variable_log_potentials and will correspond to a binary
-  // variable). 
+  // variable).
   void Initialize(int length, int budget,
                   vector<bool> &counts_for_budget,
                   vector<int> &bigram_positions) {
@@ -384,8 +384,8 @@ class FactorCompressionBudget : public GenericFactor {
       for (int j = 0; j < num_previous_states; ++j) {
         index_edges_[i][j].resize(num_current_states);
         for (int k = 0; k < num_current_states; ++k) {
-          if (bigram_variables[i] >= 0 && 
-              j == num_previous_states-1 && 
+          if (bigram_variables[i] >= 0 &&
+              j == num_previous_states-1 &&
               k == num_current_states-1) {
             // This bigram is handled directly as a variable, and
             // not an additional variable.

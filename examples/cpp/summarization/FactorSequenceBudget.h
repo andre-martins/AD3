@@ -93,7 +93,7 @@ class FactorSequenceBudget : public GenericFactor {
         GetNodeScore(0, l, variable_log_potentials,
                      additional_log_potentials) +
         GetEdgeScore(0, 0, l, variable_log_potentials,
-                     additional_log_potentials); 
+                     additional_log_potentials);
       path[0][l][bin] = -1; // This won't be used.
     }
 
@@ -116,14 +116,14 @@ class FactorSequenceBudget : public GenericFactor {
           path[i+1][k].resize(num_bins);
         }
         for (int b = 0; b < num_bins; ++b) {
-          double best_value;
+          double best_value = -std::numeric_limits<double>::infinity();
           int best = -1;
           for (int l = 0; l < num_states_[i]; ++l) {
             if (l == 0 && b == 0) continue;
             if (i > 0 && path[i][l][b] < 0) continue;
-            double val = values[i][l][b] + 
+            double val = values[i][l][b] +
               GetEdgeScore(i+1, l, k, variable_log_potentials,
-                           additional_log_potentials); 
+                           additional_log_potentials);
             if (best < 0 || val > best_value) {
               best_value = val;
               best = l;
@@ -131,7 +131,7 @@ class FactorSequenceBudget : public GenericFactor {
           }
           int bin = b;
           if (k == 0) ++bin;
-          values[i+1][k][bin] = best_value + 
+          values[i+1][k][bin] = best_value +
             GetNodeScore(i+1, k, variable_log_potentials,
                          additional_log_potentials);
           path[i+1][k][bin] = best;
@@ -149,9 +149,9 @@ class FactorSequenceBudget : public GenericFactor {
       for (int l = 0; l < num_states_[length - 1]; ++l) {
         if (l == 0 && b == 0) continue;
         if (length > 1 && path[length-1][l][b] < 0) continue;
-        double val = values[length-1][l][b] + 
+        double val = values[length-1][l][b] +
           GetEdgeScore(length, l, 0, variable_log_potentials,
-                       additional_log_potentials); 
+                       additional_log_potentials);
         if (best < 0 || val > best_value) {
           best_value = val;
           best = l;
@@ -190,17 +190,17 @@ class FactorSequenceBudget : public GenericFactor {
       int state = (*sequence)[i];
       *value += GetNodeScore(i, state, variable_log_potentials,
                              additional_log_potentials);
-      *value += GetEdgeScore(i, previous_state, state, 
+      *value += GetEdgeScore(i, previous_state, state,
                              variable_log_potentials,
                              additional_log_potentials);
       previous_state = state;
     }
-    *value += GetEdgeScore(sequence->size(), previous_state, 0, 
+    *value += GetEdgeScore(sequence->size(), previous_state, 0,
                            variable_log_potentials,
                            additional_log_potentials);
   }
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   void UpdateMarginalsFromConfiguration(
     const Configuration &configuration,
@@ -263,7 +263,7 @@ class FactorSequenceBudget : public GenericFactor {
   Configuration CreateConfiguration() {
     int length = num_states_.size();
     vector<int>* sequence = new vector<int>(length, -1);
-    return static_cast<Configuration>(sequence); 
+    return static_cast<Configuration>(sequence);
   }
 
  public:
@@ -306,9 +306,9 @@ class FactorSequenceBudget : public GenericFactor {
   vector<int> num_states_;
   // Offset of states for each position.
   vector<int> offset_states_;
-  // At each position, map from edges of states to a global index which 
+  // At each position, map from edges of states to a global index which
   // matches the index of additional_log_potentials_.
-  vector<vector<vector<int> > > index_edges_; 
+  vector<vector<vector<int> > > index_edges_;
 };
 
 } // namespace AD3

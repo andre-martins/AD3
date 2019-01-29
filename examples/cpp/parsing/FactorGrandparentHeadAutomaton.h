@@ -83,7 +83,7 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
           if (path[m][m] < 0 || score > values[m][m]) {
             values[m][m] = score;
             path[m][m] = j;
-          } 
+          }
         }
         int index = index_grandparents_[g][m];
         values[m][m] += variable_log_potentials[num_grandparents+m-1] +
@@ -92,14 +92,14 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
 
       // The end state is m = length.
       int best_last_state = -1;
-      double best_score;
+      double best_score = -std::numeric_limits<double>::infinity();
       for (int j = 0; j < length; ++j) {
         int index = index_siblings_[j][length];
         double score = values[length-1][j] + additional_log_potentials[index];
         if (best_last_state < 0 || score > best_score) {
           best_score = score;
           best_last_state = j;
-        } 
+        }
       }
 
       // Add the score of the arc (g-->h).
@@ -120,7 +120,7 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
     }
 
     // Now write the configuration.
-    vector<int> *grandparent_modifiers = 
+    vector<int> *grandparent_modifiers =
       static_cast<vector<int>*>(configuration);
     grandparent_modifiers->push_back(best_grandparent);
     for (int m = 1; m < length; ++m) {
@@ -151,14 +151,14 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
       *value += additional_log_potentials[index];
       m = s;
       index = index_grandparents_[g][m];
-      *value += additional_log_potentials[index];      
+      *value += additional_log_potentials[index];
     }
     int s = index_siblings_.size();
     int index = index_siblings_[m][s];
     *value += additional_log_potentials[index];
   }
 
-  // Given a configuration with a probability (weight), 
+  // Given a configuration with a probability (weight),
   // increment the vectors of variable and additional posteriors.
   void UpdateMarginalsFromConfiguration(
     const Configuration &configuration,
@@ -178,7 +178,7 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
       (*additional_posteriors)[index] += weight;
       m = s;
       index = index_grandparents_[g][m];
-      (*additional_posteriors)[index] += weight;      
+      (*additional_posteriors)[index] += weight;
     }
     int s = index_siblings_.size();
     int index = index_siblings_[m][s];
@@ -215,7 +215,7 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
     for (int i = 0; i < values1->size(); ++i) {
       if ((*values1)[i] != (*values2)[i]) return false;
     }
-    return true;    
+    return true;
   }
 
   // Delete configuration.
@@ -229,11 +229,11 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
     // The first element is the index of the grandparent.
     // The remaining elements are the indices of the modifiers.
     vector<int>* grandparent_modifiers = new vector<int>;
-    return static_cast<Configuration>(grandparent_modifiers); 
+    return static_cast<Configuration>(grandparent_modifiers);
   }
 
  public:
-  // length is relative to the head position. 
+  // length is relative to the head position.
   // E.g. for a right automaton with h=3 and instance_length=10,
   // length = 7. For a left automaton, it would be length = 3.
   void Initialize(int length,
