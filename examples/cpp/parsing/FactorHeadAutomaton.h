@@ -20,6 +20,7 @@
 #define FACTOR_HEAD_AUTOMATON
 
 #include "ad3/GenericFactor.h"
+#include "FactorTree.h"
 
 namespace AD3 {
 
@@ -40,7 +41,10 @@ class Sibling {
 
 class FactorHeadAutomaton : public GenericFactor {
  public:
-  FactorHeadAutomaton () {}
+  FactorHeadAutomaton () {
+    num_siblings_ = -1;
+    length_ = -1;
+  }
   virtual ~FactorHeadAutomaton() { ClearActiveSet(); }
 
   // Compute the score of a given assignment.
@@ -192,9 +196,18 @@ class FactorHeadAutomaton : public GenericFactor {
   }
 
  public:
+  // return the number of arc variables constrained by this factor
+  // (only should be called after Initialize)
+  int GetNumVariables(){
+    return length_ - 1;
+  }
+
   // length is relative to the head position. 
   // E.g. for a right automaton with h=3 and instance_length=10,
   // length = 7. For a left automaton, it would be length = 3.
+  // This function assumes that all possible arcs exist; i.e., 
+  // there was no pruning. If that's not the case, use the Initialize
+  // that receives a vector of arcs.
   void Initialize(int length, const vector<Sibling*> &siblings) {
     length_ = length;
     index_siblings_.assign(length, vector<int>(length+1, -1));
@@ -213,8 +226,57 @@ class FactorHeadAutomaton : public GenericFactor {
     }
   }
 
+  // If the arcs are to the left of a head token, they must be sorted by increasing
+  // modifier indices. If they are to the right, by decreasing indices.
+  // This function should be used when some arcs were pruned.
+  void Initialize(const vector<Arc*> &arcs, const vector<Sibling*> &siblings) {
+    length_ = arcs.size() + 1;
+    num_siblings_ = siblings.size();
+    index_siblings_.assign(length_, vector<int>(length_ + 1, -1));
+
+    // in case the given vector of arcs doesn't contain all possible arcs 
+    // (in case some were pruned), map the given ones to a sequence
+    int h = (arcs.size() > 0) ? arcs[0]->head() : -1;
+    int m = (arcs.size() > 0) ? arcs[0]->modifier() : -1;
+    vector<int> index_modifiers(1, 0);
+    bool right = (h < m) ? true : false;
+    for (int k = 0; k < arcs.size(); ++k) {
+      int previous_modifier = m;
+      m = arcs[k]->modifier();
+
+      int position = right ? m - h : h - m;
+      index_modifiers.resize(position + 1, -1);
+      index_modifiers[position] = k + 1;
+    }
+
+    for (int k = 0; k < siblings.size(); ++k) {
+      h = siblings[k]->head();
+      m = siblings[k]->modifier();
+      int s = siblings[k]->sibling();
+      right = (s > h) ? true : false;
+      int position_modifier = right ? m - h : h - m;
+      int position_sibling = right ? s - h : h - s;
+      int index_modifier = index_modifiers[position_modifier];
+      int index_sibling = (position_sibling < index_modifiers.size()) ?
+        index_modifiers[position_sibling] : length_;
+      index_siblings_[index_modifier][index_sibling] = k;
+    }
+  }
+
+  virtual const void CheckAdditionalLogPotentials
+    (const vector<double> &additional_log_potentials){
+      // the number of additional potentials should be equal to the number of 
+      // sibling parts
+      if(num_siblings_ == -1){
+        throw logic_error("Factor not initialized");
+      }else if(additional_log_potentials.size() != num_siblings_){
+        throw invalid_argument("Number of additional potentials different from the number of siblings");
+      }        
+    }
+
  private:
-  int length_;
+  int length_;  // number of arc parts in the factor + 1
+  int num_siblings_;  // number of sibling parts in the factor
   vector<vector<int> > index_siblings_;
 };
 

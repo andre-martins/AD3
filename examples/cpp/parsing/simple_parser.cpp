@@ -138,10 +138,14 @@ int main(int argc, char **argv) {
     vector<BinaryVariable*> local_variables;
     vector<double> additional_scores;
     vector<Sibling*> local_siblings;
+    vector<Arc*> local_arcs;
     for (int m = h; m < sentence_length; ++m) {
       if (m != h) {
         int index = index_arcs[h][m];
-        if (index >= 0) local_variables.push_back(variables[index]);
+        if (index >= 0){
+          local_variables.push_back(variables[index]);
+          local_arcs.push_back(arcs[index]);
+        }
       }
       for (int s = m+1; s <= sentence_length; ++s) {
         // Additional score for sibling (h,m,s).
@@ -159,7 +163,7 @@ int main(int argc, char **argv) {
     Factor *head_automaton_factor = new FactorHeadAutomaton;
     factors.push_back(head_automaton_factor);
     static_cast<FactorHeadAutomaton*>(head_automaton_factor)->Initialize(
-        sentence_length - h, local_siblings);
+        local_arcs, local_siblings);
     factor_graph.DeclareFactor(head_automaton_factor,
                                local_variables);
     head_automaton_factor->SetAdditionalLogPotentials(additional_scores);
@@ -170,10 +174,14 @@ int main(int argc, char **argv) {
     vector<BinaryVariable*> local_variables;
     vector<double> additional_scores;
     vector<Sibling*> local_siblings;
+    vector<Arc*> local_arcs;
     for (int m = h; m >= 1; --m) {
       if (m != h) {
         int index = index_arcs[h][m];
-        if (index >= 0) local_variables.push_back(variables[index]);
+        if (index >= 0){
+          local_variables.push_back(variables[index]);
+          local_arcs.push_back(arcs[index]);
+        } 
       }
       for (int s = m-1; s >= 0; --s) {
         // Additional score for sibling (h,m,s).
@@ -190,7 +198,7 @@ int main(int argc, char **argv) {
 
     Factor *head_automaton_factor = new FactorHeadAutomaton;
     factors.push_back(head_automaton_factor);
-    static_cast<FactorHeadAutomaton*>(head_automaton_factor)->Initialize(h, local_siblings);
+    static_cast<FactorHeadAutomaton*>(head_automaton_factor)->Initialize(local_arcs, local_siblings);
     factor_graph.DeclareFactor(head_automaton_factor,
                                local_variables);
     head_automaton_factor->SetAdditionalLogPotentials(additional_scores);

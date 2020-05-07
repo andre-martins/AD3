@@ -167,6 +167,7 @@ class Factor {
 
   void SetAdditionalLogPotentials(
       const vector<double> &additional_log_potentials) {
+    CheckAdditionalLogPotentials(additional_log_potentials);
     additional_log_potentials_ = additional_log_potentials;
   }
 
@@ -216,6 +217,13 @@ class Factor {
             additional_log_potentials_last_,
             &variable_posteriors_last_,
             &additional_posteriors_last_);
+  }
+
+  // check whether the given potentials are valid and raise an exception
+  // if they are not
+  virtual const void CheckAdditionalLogPotentials(
+    const vector<double> &additional_log_potentials){
+    return;
   }
 
  private:

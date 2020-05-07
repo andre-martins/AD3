@@ -570,8 +570,11 @@ int LoadGraph(ifstream &file_graph,
       vector<vector<int> > index_siblings(length, vector<int>(length+1, -1));
       int total = 0;
       vector<Sibling*> siblings;
+      vector<Arc*> arcs;
       vector<double> additional_scores;
       for (int m = 0; m < length; ++m) {
+        Arc *arc = new Arc(0, m);
+        arcs.push_back(arc);
         for (int s = m+1; s <= length; ++s) {
           // Create a fake sibling.
           Sibling *sibling = new Sibling(0, m, s);
@@ -584,9 +587,12 @@ int LoadGraph(ifstream &file_graph,
       }
       factor = new FactorHeadAutomaton;
       factor_graph->DeclareFactor(factor, binary_variables, true);
-      static_cast<FactorHeadAutomaton*>(factor)->Initialize(length, siblings);
+      static_cast<FactorHeadAutomaton*>(factor)->Initialize(arcs, siblings);
       for (int r = 0; r < siblings.size(); ++r) {
         delete siblings[r];
+      }
+      for (int r = 0; r < arcs.size(); ++r) {
+        delete arcs[r];
       }
       factor->SetAdditionalLogPotentials(additional_scores);
       num_factor_log_potentials += additional_scores.size();

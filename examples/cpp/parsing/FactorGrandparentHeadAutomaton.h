@@ -39,6 +39,23 @@ class Grandparent {
   int m_;
 };
 
+class Grandsibling {
+  public:
+  Grandsibling(int g, int h, int m, int s) : g_(g), h_(h), m_(m), s_(s) {}
+  ~Grandsibling() {}
+
+  int grandparent() { return g_; }
+  int head() { return h_; }
+  int modifier() { return m_; }
+  int sibling() { return s_; }
+
+ private:
+  int g_;
+  int h_;
+  int m_;
+  int s_;
+};
+
 class FactorGrandparentHeadAutomaton : public GenericFactor {
  public:
   FactorGrandparentHeadAutomaton () {}
@@ -80,6 +97,10 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
         for (int j = 0; j < m; ++j) {
           int index = index_siblings_[j][m];
           double score = values[m-1][j] + additional_log_potentials[index];
+          if (use_grandsiblings_) {
+            index = index_grandsiblings_[g][j][m];
+            if (index >= 0) score += additional_log_potentials[index];
+          }
           if (path[m][m] < 0 || score > values[m][m]) {
             values[m][m] = score;
             path[m][m] = j;
@@ -96,6 +117,10 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
       for (int j = 0; j < length; ++j) {
         int index = index_siblings_[j][length];
         double score = values[length-1][j] + additional_log_potentials[index];
+        if (use_grandsiblings_) {
+          index = index_grandsiblings_[g][j][length];
+          if (index >= 0) score += additional_log_potentials[index];
+        }
         if (best_last_state < 0 || score > best_score) {
           best_score = score;
           best_last_state = j;
@@ -149,6 +174,10 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
       *value += variable_log_potentials[num_grandparents+s-1];
       int index = index_siblings_[m][s];
       *value += additional_log_potentials[index];
+      if (use_grandsiblings_) {
+        index = index_grandsiblings_[g][m][s];
+        if (index >= 0) *value += additional_log_potentials[index];
+      }
       m = s;
       index = index_grandparents_[g][m];
       *value += additional_log_potentials[index];
@@ -156,6 +185,10 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
     int s = index_siblings_.size();
     int index = index_siblings_[m][s];
     *value += additional_log_potentials[index];
+    if (use_grandsiblings_) {
+      index = index_grandsiblings_[g][m][s];
+      if (index >= 0) *value += additional_log_potentials[index];
+    }
   }
 
   // Given a configuration with a probability (weight),
@@ -176,6 +209,10 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
       (*variable_posteriors)[num_grandparents+s-1] += weight;
       int index = index_siblings_[m][s];
       (*additional_posteriors)[index] += weight;
+      if (use_grandsiblings_) {
+        index = index_grandsiblings_[g][m][s];
+        if (index >= 0) (*additional_posteriors)[index] += weight;
+      }
       m = s;
       index = index_grandparents_[g][m];
       (*additional_posteriors)[index] += weight;
@@ -183,6 +220,10 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
     int s = index_siblings_.size();
     int index = index_siblings_[m][s];
     (*additional_posteriors)[index] += weight;
+    if (use_grandsiblings_) {
+      index = index_grandsiblings_[g][m][s];
+      if (index >= 0) (*additional_posteriors)[index] += weight;
+    }
   }
 
   // Count how many common values two configurations have.
@@ -233,9 +274,129 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
   }
 
  public:
-  // length is relative to the head position.
+  // Incoming arcs are of the form (g,h) for each g.
+  // Outgoing arcs are of the form (h,m) for each m.
+  // The variables linked to this factor must be in the same order as
+  // the incoming arcs, followed by the outgoing arcs.
+  // The incoming arcs must be sorted by grandparent, from smallest to
+  // biggest index.
+  // The outgoing arcs must be sorted from the closest to the farthest
+  // away from the root.
+  // Grandparent parts (g, h, m) must include cases where g = m.
+  // Factors without incoming arcs must not be created.
+  void Initialize(const vector<Arc*> &incoming_arcs,
+                  const vector<Arc*> &outgoing_arcs,
+                  const vector<Grandparent*> &grandparents,
+                  const vector<Sibling*> &siblings) {
+    vector<Grandsibling*> grandsiblings;
+    Initialize(incoming_arcs, outgoing_arcs, grandparents, siblings,
+               grandsiblings);
+  }
+
+  void Initialize(const vector<Arc*> &incoming_arcs,
+                  const vector<Arc*> &outgoing_arcs,
+                  const vector<Grandparent*> &grandparents,
+                  const vector<Sibling*> &siblings,
+                  const vector<Grandsibling*> &grandsiblings) {
+    // length is relative to the head position.
+    // E.g. for a right automaton with h=3 and instance_length=10,
+    // length = 7. For a left automaton, it would be length = 3.
+    use_grandsiblings_ = (grandsiblings.size() > 0);
+    int num_grandparents = incoming_arcs.size();
+    length_ = outgoing_arcs.size() + 1;
+    index_grandparents_.assign(num_grandparents, vector<int>(length_, -1));
+    index_siblings_.assign(length_, vector<int>(length_ + 1, -1));
+    if (use_grandsiblings_) {
+      index_grandsiblings_.assign(num_grandparents,
+                                  vector<vector<int> >(length_,
+                                                       vector<int>(length_ + 1, -1)));
+    }
+
+    // Create a temporary index of modifiers.
+    int h = (outgoing_arcs.size() > 0) ? outgoing_arcs[0]->head() : -1;
+    int m = (outgoing_arcs.size() > 0) ? outgoing_arcs[0]->modifier() : -1;
+    vector<int> index_modifiers(1, 0);
+    bool right = (h < m) ? true : false;
+    for (int k = 0; k < outgoing_arcs.size(); ++k) {
+      int previous_modifier = m;
+      m = outgoing_arcs[k]->modifier();
+
+      int position = right ? m - h : h - m;
+      index_modifiers.resize(position + 1, -1);
+      index_modifiers[position] = k + 1;
+    }
+
+    // Construct index of siblings.
+    for (int k = 0; k < siblings.size(); ++k) {
+      h = siblings[k]->head();
+      m = siblings[k]->modifier();
+      int s = siblings[k]->sibling();
+      // cout << "sibling " << h << " -> " << m << " -> " << s << endl;
+      right = (s > h) ? true : false;
+      int position_modifier = right ? m - h : h - m;
+      int position_sibling = right ? s - h : h - s;
+      int index_modifier = index_modifiers[position_modifier];
+      int index_sibling = (position_sibling < index_modifiers.size()) ?
+        index_modifiers[position_sibling] : length_;
+
+      // Add an offset to save room for the grandparents.
+      index_siblings_[index_modifier][index_sibling] =
+        grandparents.size() + k;
+    }
+
+    // Create a temporary index of grandparents.
+    int g = (incoming_arcs.size() > 0) ? incoming_arcs[0]->head() : -1;
+    h = (incoming_arcs.size() > 0) ? incoming_arcs[0]->modifier() : -1;
+    vector<int> index_incoming;
+    for (int k = 0; k < incoming_arcs.size(); ++k) {
+      g = incoming_arcs[k]->head();
+      // Allow for the case where g is -1 (the head being the root
+      // in this case). To handle this, set the position to g+1.
+      int position = g + 1;
+      index_incoming.resize(position + 1, -1);
+      index_incoming[position] = k;
+    }
+
+    // Construct index of grandparents.
+    for (int k = 0; k < grandparents.size(); ++k) {
+      int g = grandparents[k]->grandparent();
+      h = grandparents[k]->head();
+      m = grandparents[k]->modifier();
+      //cout << "grandparent " << g << " -> " << h << " -> " << m << endl;
+
+      right = (m > h) ? true : false;
+      int position_modifier = right ? m - h : h - m;
+      int position_grandparent = g + 1;
+      int index_modifier = index_modifiers[position_modifier];
+      int index_grandparent = index_incoming[position_grandparent];
+      index_grandparents_[index_grandparent][index_modifier] = k;
+    }
+
+    // Construct index of grandsiblings.
+    for (int k = 0; k < grandsiblings.size(); ++k) {
+      int g = grandsiblings[k]->grandparent();
+      h = grandsiblings[k]->head();
+      m = grandsiblings[k]->modifier();
+      int s = grandsiblings[k]->sibling();
+
+      right = (s > h) ? true : false;
+      int position_grandparent = g + 1;
+      int position_modifier = right ? m - h : h - m;
+      int position_sibling = right ? s - h : h - s;
+      int index_grandparent = index_incoming[position_grandparent];
+      int index_modifier = index_modifiers[position_modifier];
+      int index_sibling = (position_sibling < index_modifiers.size()) ?
+        index_modifiers[position_sibling] : length_;
+
+      // Add an offset to save room for the grandparents and siblings.
+      index_grandsiblings_[index_grandparent][index_modifier][index_sibling] =
+        siblings.size() + grandparents.size() + k;
+    }
+  }
+  // length is relative to the head position. 
   // E.g. for a right automaton with h=3 and instance_length=10,
   // length = 7. For a left automaton, it would be length = 3.
+  // (DEPRECATED)
   void Initialize(int length,
                   int num_grandparents,
                   const vector<Sibling*> &siblings,
@@ -271,9 +432,11 @@ class FactorGrandparentHeadAutomaton : public GenericFactor {
   }
 
  private:
+  bool use_grandsiblings_;
   int length_;
   vector<vector<int> > index_siblings_;
   vector<vector<int> > index_grandparents_;
+  vector<vector<vector<int> > > index_grandsiblings_;
 };
 
 } // namespace AD3

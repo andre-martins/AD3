@@ -4,6 +4,7 @@ from setuptools.extension import Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.build_clib import build_clib
 from setuptools.command.bdist_egg import bdist_egg
+import os
 
 
 AD3_FLAGS_UNIX = [
@@ -27,7 +28,7 @@ AD3_FLAGS_MSVC = [
 ]
 
 
-AD3_CFLAGS =  {
+AD3_CFLAGS = {
     'cygwin' : AD3_FLAGS_UNIX,
     'mingw32' : AD3_FLAGS_UNIX,
     'unix' : AD3_FLAGS_UNIX,
@@ -106,6 +107,11 @@ libad3 = ('ad3', {
                      './examples/cpp/parsing'
                      ],
 })
+
+
+if sys.platform == 'darwin' and 'CFLAGS' not in os.environ:
+    print('If you are using clang on macOS, ' 
+          'you probably need to set "CFLAGS=-stdlib=libc++"')
 
 
 setup(name='ad3',

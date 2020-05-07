@@ -75,7 +75,23 @@ cdef extern from "../examples/cpp/parsing/FactorHeadAutomaton.h" namespace "AD3"
 
     cdef cppclass FactorHeadAutomaton(Factor):
         FactorHeadAutomaton()
+        void Initialize(vector[Arc *], vector[Sibling *])
         void Initialize(int, vector[Sibling *])
+
+
+cdef extern from "../examples/cpp/parsing/FactorGrandparentHeadAutomaton.h" namespace "AD3":
+    cdef cppclass Grandparent:
+        Grandparent(int, int, int)
+
+    cdef cppclass Grandsibling:
+        Grandsibling(int, int, int, int)
+
+    cdef cppclass FactorGrandparentHeadAutomaton(Factor):
+        FactorGrandparentHeadAutomaton()
+        void Initialize(vector[Arc*], vector[Arc*], vector[Grandparent*],
+            vector[Sibling*])
+        void Initialize(vector[Arc*], vector[Arc*], vector[Grandparent*], 
+            vector[Sibling*], vector[Grandsibling*])
 
 
 cdef class PFactorSequence(PGenericFactor):
@@ -256,16 +272,32 @@ cdef class PFactorHeadAutomaton(PGenericFactor):
         if self.allocate:
             del self.thisptr
 
-    def initialize(self, int length, list siblings, bool validate=True):
-        # length = max(s - h) for (h, m, s) in siblings
+    def initialize(self, arcs_or_length, list siblings, bool validate=True):
+        """
+        If arcs_or_length is the length, it is assumed that all possible arcs
+        in the tree exist, i.e., there was no pruning.
+        The length is relative to the head position. 
+        E.g. for a right automaton with h=3 and instance_length=10,
+        length = 7. For a left automaton, it would be length = 3.
 
+        If any arcs were pruned, arcs_or_length should be a list with the
+        remaining arcs.
+        """
+        cdef tuple arc
+        cdef vector[Arc *] arcs_v
         cdef vector[Sibling *] siblings_v
-
         cdef tuple sibling
+        cdef int length
+
         for sibling in siblings:
             siblings_v.push_back(new Sibling(sibling[0],
                                              sibling[1],
                                              sibling[2]))
+        
+        if isinstance(arcs_or_length, int):
+            length = arcs_or_length
+        else:
+            length = max(s - h for (h, m, s) in siblings)
 
         if validate:
             if siblings_v.size() != length * (1 + length) / 2:
@@ -274,7 +306,105 @@ cdef class PFactorHeadAutomaton(PGenericFactor):
             if length != self.thisptr.Degree() + 1:
                 raise ValueError("Number of variables doesn't match.")
 
-        (<FactorHeadAutomaton*>self.thisptr).Initialize(length, siblings_v)
+        if isinstance(arcs_or_length, list):
+            for arc in arcs_or_length:
+                arcs_v.push_back(new Arc(arc[0], arc[1]))
+
+            (<FactorHeadAutomaton*>self.thisptr).Initialize(arcs_v, siblings_v)
+            for arcp in arcs_v:
+                del arcp
+        else:
+            (<FactorHeadAutomaton*>self.thisptr).Initialize(length, siblings_v)
 
         for sibp in siblings_v:
             del sibp
+
+cdef class PFactorGrandparentHeadAutomaton(PGenericFactor):
+    def __cinit__(self, allocate=True):
+        self.allocate = allocate
+        if allocate:
+            self.thisptr = new FactorGrandparentHeadAutomaton()
+    
+    def __dealloc__(self):
+        if self.allocate:
+            del self.thisptr
+    
+    def initialize(self, list incoming_arcs, list outgoing_arcs, list grandparents,
+        list siblings, list grandsiblings=None):
+        """
+        Incoming arcs are of the form (g,h) for each g.
+        Outgoing arcs are of the form (h,m) for each m.
+        
+        Siblings are tuples (h, m, s)
+        Grandparents are tuples (g, h, m)
+        Grandsiblings are tuples (g, h, m, s)
+
+        The variables linked to this factor must be in the same order as
+        the incoming arcs, followed by the outgoing arcs.
+
+        The incoming arcs must be sorted by grandparent, from smallest to
+        biggest. Incoming arcs must be included even if they don't have a corresponding
+        grandparent part. This happens when the only sibling parts are (h, h, 0) and
+        (h, h, length).
+
+        The outgoing arcs must be sorted from the closest to the farthest
+        away from the head.
+
+        Grandparent parts must include all combinations of incoming and outgoing arcs,
+        including the tuples in which g = m.
+
+        When solving the problem, the returned additional posteriors will be ordered
+        as grandparent factors, then sibling factors, and finally grandsiblings if
+        any.
+
+        Potentials should be set in the same order.
+        """
+
+        cdef vector[Arc *] incoming_v, outgoing_v
+        cdef vector[Sibling *] siblings_v
+        cdef vector[Grandparent *] grandparents_v
+        cdef vector[Grandsibling *] grandsiblings_v
+        
+        cdef tuple arc
+        cdef tuple sibling
+        cdef tuple grandparent
+        cdef tuple grandsibling
+        for arc in incoming_arcs:
+            incoming_v.push_back(new Arc(arc[0], arc[1]))
+        
+        for arc in outgoing_arcs:
+            outgoing_v.push_back(new Arc(arc[0], arc[1]))
+        
+        for sibling in siblings:
+            siblings_v.push_back(new Sibling(sibling[0], 
+                                             sibling[1], 
+                                             sibling[2]))
+        
+        for grandparent in grandparents:
+            grandparents_v.push_back(new Grandparent(grandparent[0], 
+                                                     grandparent[1],
+                                                     grandparent[2]))
+        
+        if grandsiblings is None:
+            (<FactorGrandparentHeadAutomaton*>self.thisptr).Initialize(
+                incoming_v, outgoing_v, grandparents_v, siblings_v)
+        else:
+            for grandsibling in grandsiblings:
+                grandsiblings_v.push_back(new Grandsibling(grandsibling[0],
+                                                           grandsibling[1],
+                                                           grandsibling[2],
+                                                           grandsibling[3]))
+            
+            (<FactorGrandparentHeadAutomaton*>self.thisptr).Initialize(
+                incoming_v, outgoing_v, grandparents_v, siblings_v, grandsiblings_v)
+
+        for arcp in incoming_v:
+            del arcp
+        for arcp in outgoing_v:
+            del arcp
+        for sibp in siblings_v:
+            del sibp
+        for gpp in grandparents_v:
+            del gpp
+        for gsp in grandsiblings_v:
+            del gsp
